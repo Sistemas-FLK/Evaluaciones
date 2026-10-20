@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-quimi-primary: #08265C;
+    --color-quimi-secondary: #2563EB;
+    --color-quimi-bg: #F8FAFC;
+    --color-quimi-success: #10B981;
+    --color-quimi-warning: #F59E0B;
+    --color-quimi-danger: #EF4444;
+  }
+
+  body {
+    background-color: #F8FAFC;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1E293B;
+  }
+}
+
+/* Animaciones suaves para transiciones de evaluación */
+@keyframes pulseWarning {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+  }
+}
+
+@keyframes pulseDanger {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
+  }
+}
+
+.timer-warning {
+  animation: pulseWarning 1.5s infinite;
+}
+
+.timer-danger {
+  animation: pulseDanger 0.8s infinite;
+}
+
+/* Estilo para reporte de impresión */
+@media print {
+  body {
+    background-color: white !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
