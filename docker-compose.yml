@@ -1,0 +1,22 @@
+services:
+  quimicorp-talent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: quimicorp-talent:latest
+    container_name: quimicorp_talent_app
+    restart: unless-stopped
+    ports:
+      - "1234:1234"
+    environment:
+      - PORT=1234
+      - NODE_ENV=production
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}
+      - ADMIN_PIN=${ADMIN_PIN:-admin123}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:1234/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
