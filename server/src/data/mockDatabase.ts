@@ -14,7 +14,9 @@ import {
   INITIAL_ANSWER_KEYS, 
   INITIAL_CANDIDATES, 
   INITIAL_INVITATIONS, 
-  INITIAL_ASSESSMENTS 
+  INITIAL_ASSESSMENTS,
+  INITIAL_ANSWERS,
+  INITIAL_REVIEWER_SCORES
 } from './initialData.js';
 
 // Base de datos en memoria para operación de alta disponibilidad o modo local
@@ -39,6 +41,8 @@ class MemoryDatabase {
     INITIAL_ASSESSMENTS.forEach(a => this.assessments.set(a.id, { ...a }));
     INITIAL_QUESTIONS.forEach(q => this.questions.set(q.id, { ...q }));
     INITIAL_ANSWER_KEYS.forEach(k => this.answerKeys.set(k.question_id, { ...k }));
+    INITIAL_ANSWERS.forEach(ans => this.answers.set(`${ans.assessment_id}_${ans.question_id}`, { ...ans }));
+    INITIAL_REVIEWER_SCORES.forEach(r => this.reviewerScores.set(`${r.answer_id}_${r.reviewer_id}`, { ...r }));
   }
 
   // Candidatas
