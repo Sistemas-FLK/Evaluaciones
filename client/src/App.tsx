@@ -14,9 +14,36 @@ export function App() {
   const [currentRole, setCurrentRole] = useState<'candidate' | 'admin'>('candidate');
   
   // Flujo de la Candidata: 'welcome' | 'instructions' | 'exam' | 'completion'
-  const [candidateStep, setCandidateStep] = useState<'welcome' | 'instructions' | 'exam' | 'completion'>('welcome');
-  const [currentCandidate, setCurrentCandidate] = useState<any>(null);
-  const [currentAssessment, setCurrentAssessment] = useState<any>(null);
+  const [candidateStep, setCandidateStep] = useState<'welcome' | 'instructions' | 'exam' | 'completion'>(() => {
+    const saved = localStorage.getItem('quimi_candidate_session');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.assessment && parsed.step) return parsed.step;
+      } catch {}
+    }
+    return 'welcome';
+  });
+
+  const [currentCandidate, setCurrentCandidate] = useState<any>(() => {
+    const saved = localStorage.getItem('quimi_candidate_session');
+    if (saved) {
+      try {
+        return JSON.parse(saved).candidate || null;
+      } catch {}
+    }
+    return null;
+  });
+
+  const [currentAssessment, setCurrentAssessment] = useState<any>(() => {
+    const saved = localStorage.getItem('quimi_candidate_session');
+    if (saved) {
+      try {
+        return JSON.parse(saved).assessment || null;
+      } catch {}
+    }
+    return null;
+  });
 
   // Evaluador / Admin
   const [adminToken, setAdminToken] = useState<string>(() => localStorage.getItem('quimi_admin_token') || '');
@@ -81,6 +108,19 @@ export function App() {
       alert(err.message || 'Error al iniciar la evaluación.');
     }
   };
+
+  // Guardar y sincronizar sesión activa de la candidata para tolerar F5 y reconexiones
+  useEffect(() => {
+    if (currentAssessment && (candidateStep === 'exam' || candidateStep === 'instructions')) {
+      localStorage.setItem('quimi_candidate_session', JSON.stringify({
+        candidate: currentCandidate,
+        assessment: currentAssessment,
+        step: candidateStep
+      }));
+    } else if (candidateStep === 'completion') {
+      localStorage.removeItem('quimi_candidate_session');
+    }
+  }, [candidateStep, currentCandidate, currentAssessment]);
 
   const handleSwitchRole = (role: 'candidate' | 'admin') => {
     if (role === 'admin' && !adminToken) {

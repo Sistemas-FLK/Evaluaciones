@@ -108,6 +108,17 @@ export const ExamStep: React.FC<ExamStepProps> = ({
     };
   }, [assessmentId]);
 
+  // Protección anti-cierre y anti-recarga accidental durante el examen
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   // Función unificada de envío (manual o por expiración de tiempo)
   const executeSubmit = useCallback(async (isAutoTimeout = false) => {
     if (submittingRef.current || !questionData?.question) return;
