@@ -13,11 +13,30 @@ export async function checkHealth() {
 // Portal de Candidatas
 // -----------------------------------------------------------------------------
 
-export async function validateInvitation(code: string, accept_privacy: boolean) {
+export async function lookupInvitationCode(code: string) {
+  try {
+    const res = await fetch(`${API_BASE}/candidate/lookup/${encodeURIComponent(code)}`);
+    return await res.json();
+  } catch (err) {
+    return { found: false };
+  }
+}
+
+export async function validateInvitation(
+  code: string,
+  accept_privacy: boolean,
+  candidateData?: { full_name?: string; email?: string; phone?: string }
+) {
   const res = await fetch(`${API_BASE}/candidate/validate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, accept_privacy }),
+    body: JSON.stringify({
+      code,
+      accept_privacy,
+      full_name: candidateData?.full_name,
+      email: candidateData?.email,
+      phone: candidateData?.phone
+    }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Código de invitación inválido');

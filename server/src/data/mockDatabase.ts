@@ -59,6 +59,14 @@ class MemoryDatabase {
     return candidate;
   }
 
+  updateCandidate(id: string, updates: Partial<Candidate>): Candidate | undefined {
+    const existing = this.candidates.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...updates };
+    this.candidates.set(id, updated);
+    return updated;
+  }
+
   // Invitaciones
   getInvitationByCode(code: string): Invitation | undefined {
     const cleanCode = code.trim().toUpperCase();

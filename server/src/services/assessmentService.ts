@@ -4,9 +4,48 @@ import { Question, Answer, Assessment } from '../types.js';
 
 export class AssessmentService {
   /**
-   * Valida el código individual de acceso contra el servidor.
+   * Consulta previa rápida del código para pre-completar datos de la candidata.
    */
-  async validateInvitation(code: string) {
+  async lookupInvitationCode(code: string) {
+    if (!code || !code.trim()) {
+      return { found: false, message: 'Código no provisto' };
+    }
+
+    const cleanCode = code.trim().toUpperCase();
+    const invitation = db.getInvitationByCode(cleanCode);
+
+    if (!invitation) {
+      return { found: false, message: 'Código de invitación no encontrado' };
+    }
+
+    if (!invitation.is_active || new Date(invitation.expires_at) < new Date()) {
+      return { found: false, message: 'Esta invitación ha expirado o está inactiva' };
+    }
+
+    const candidate = db.getCandidateById(invitation.candidate_id);
+    if (!candidate) {
+      return { found: false, message: 'Candidata no encontrada' };
+    }
+
+    const assessment = db.getAssessmentByCandidateId(candidate.id);
+    const isCompleted = assessment && (assessment.status === 'submitted' || assessment.status === 'graded');
+
+    return {
+      found: true,
+      candidate: {
+        id: candidate.id,
+        full_name: candidate.full_name,
+        email: candidate.email,
+        phone: candidate.phone || ''
+      },
+      is_completed: Boolean(isCompleted)
+    };
+  }
+
+  /**
+   * Valida el código individual de acceso contra el servidor y confirma/actualiza sus nombres.
+   */
+  async validateInvitation(code: string, candidateData?: { full_name?: string; email?: string; phone?: string }) {
     if (!code || !code.trim()) {
       throw new Error('Debe proporcionar un código de invitación válido.');
     }
@@ -53,9 +92,21 @@ export class AssessmentService {
       throw new Error('Esta invitación ha expirado.');
     }
 
-    const candidate = db.getCandidateById(invitation.candidate_id);
+    let candidate = db.getCandidateById(invitation.candidate_id);
     if (!candidate) {
       throw new Error('Candidata no encontrada en el sistema.');
+    }
+
+    // Si la candidata confirmó o completó su nombre o correo, actualizarlo
+    if (candidateData?.full_name?.trim()) {
+      const updated = db.updateCandidate(candidate.id, {
+        full_name: candidateData.full_name.trim(),
+        email: candidateData.email?.trim() || candidate.email,
+        phone: candidateData.phone?.trim() || candidate.phone
+      });
+      if (updated) {
+        candidate = updated;
+      }
     }
 
     let assessment = db.getAssessmentByCandidateId(candidate.id);
@@ -79,7 +130,8 @@ export class AssessmentService {
       candidate: {
         id: candidate.id,
         full_name: candidate.full_name,
-        email: candidate.email
+        email: candidate.email,
+        phone: candidate.phone
       },
       assessment: {
         id: assessment.id,
