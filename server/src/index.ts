@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import candidateRoutes from './routes/candidateRoutes.js';
 import assessmentRoutes from './routes/assessmentRoutes.js';
@@ -32,10 +33,12 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Servir frontend compilado de React (Vite)
-app.use(express.static(clientDistPath));
+// Servir frontend compilado de React si existe (Modo Monolito / Docker)
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+}
 
-// Endpoint de Salud y Estado de Conexión Supabase
+// Endpoint de Salud y Estado de Conexión Supabase (para Render y monitores)
 app.get('/api/health', (_req: Request, res: Response) => {
   const supabaseStatus = getSupabaseStatus();
   res.json({
@@ -52,9 +55,30 @@ app.use('/api/candidate', candidateRoutes);
 app.use('/api/assessment', assessmentRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Fallback SPA para la aplicación React
-app.get('*', (_req: Request, res: Response) => {
-  res.sendFile(path.join(clientDistPath, 'index.html'));
+// Endpoint raíz para chequeos de salud de Render
+app.get('/', (_req: Request, res: Response) => {
+  const indexHtml = path.join(clientDistPath, 'index.html');
+  if (fs.existsSync(indexHtml)) {
+    return res.sendFile(indexHtml);
+  }
+  res.json({
+    status: 'online',
+    message: 'Backend API de QUIMICORP TALENT activo y conectado a Supabase.',
+    health: '/api/health',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Fallback SPA para la aplicación React si existe el dist
+app.get('*', (req: Request, res: Response) => {
+  const indexHtml = path.join(clientDistPath, 'index.html');
+  if (fs.existsSync(indexHtml)) {
+    return res.sendFile(indexHtml);
+  }
+  res.status(404).json({
+    error: 'Ruta no encontrada en la API de QUIMICORP TALENT.',
+    path: req.path
+  });
 });
 
 // Manejo de errores no capturados

@@ -77,6 +77,16 @@ class MemoryDatabase {
 
       if (candRes.data && candRes.data.length > 0) {
         candRes.data.forEach((c: any) => this.candidates.set(c.id, c));
+      } else if (candRes.data && candRes.data.length === 0) {
+        console.log('[Supabase] Tablas vacías detectadas. Inicializando datos de candidatas en Supabase...');
+        try {
+          await supabase.from('candidates').upsert(INITIAL_CANDIDATES);
+          await supabase.from('invitations').upsert(INITIAL_INVITATIONS);
+          await supabase.from('assessments').upsert(INITIAL_ASSESSMENTS);
+          console.log('[Supabase] Inicialización completada: Esther y Geraldine listas en Supabase.');
+        } catch (seedErr) {
+          console.warn('[Supabase Auto-seed Warning]', seedErr);
+        }
       }
       if (invRes.data && invRes.data.length > 0) {
         invRes.data.forEach((i: any) => this.invitations.set(i.id, i));
