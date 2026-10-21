@@ -6,7 +6,7 @@ const router = Router();
 // Obtener pregunta actual (sin exponer answer keys)
 router.get('/:assessmentId/question', async (req: Request, res: Response) => {
   try {
-    const { assessmentId } = req.params;
+    const assessmentId = req.params.assessmentId as string;
     const questionData = await assessmentService.getCurrentQuestion(assessmentId);
     res.json(questionData);
   } catch (error: any) {
@@ -17,7 +17,7 @@ router.get('/:assessmentId/question', async (req: Request, res: Response) => {
 // Guardar borrador en tiempo real de respuesta abierta (anti-pérdida)
 router.post('/:assessmentId/draft', async (req: Request, res: Response) => {
   try {
-    const { assessmentId } = req.params;
+    const assessmentId = req.params.assessmentId as string;
     const { question_id, draft_text } = req.body;
     
     if (question_id !== undefined && draft_text !== undefined) {
@@ -33,7 +33,7 @@ router.post('/:assessmentId/draft', async (req: Request, res: Response) => {
 // Enviar respuesta y avanzar a la siguiente pregunta
 router.post('/:assessmentId/submit', async (req: Request, res: Response) => {
   try {
-    const { assessmentId } = req.params;
+    const assessmentId = req.params.assessmentId as string;
     const { question_id, selected_option, written_answer, client_elapsed_seconds } = req.body;
 
     if (!question_id) {

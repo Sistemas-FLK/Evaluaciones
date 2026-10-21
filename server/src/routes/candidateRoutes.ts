@@ -6,7 +6,7 @@ const router = Router();
 // Consulta previa de código de invitación (autocompletado/verificación)
 router.get('/lookup/:code', async (req: Request, res: Response) => {
   try {
-    const { code } = req.params;
+    const code = req.params.code as string;
     const result = await assessmentService.lookupInvitationCode(code);
     res.json(result);
   } catch (error: any) {
@@ -49,7 +49,7 @@ router.post('/start', async (req: Request, res: Response) => {
 // Recuperar sesión activa (tolerancia a fallos de conexión)
 router.get('/session/:assessmentId', async (req: Request, res: Response) => {
   try {
-    const { assessmentId } = req.params;
+    const assessmentId = req.params.assessmentId as string;
     const sessionData = await assessmentService.getCurrentQuestion(assessmentId);
     res.json(sessionData);
   } catch (error: any) {

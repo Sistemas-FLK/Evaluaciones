@@ -1,4 +1,4 @@
-import { Question, AnswerKey, Candidate, Invitation, Assessment } from '../types.js';
+import { Question, AnswerKey, Candidate, Invitation, Assessment, Answer, ReviewerScore } from '../types.js';
 
 export const INITIAL_QUESTIONS: Question[] = [
   {
@@ -294,15 +294,15 @@ export const INITIAL_CANDIDATES: Candidate[] = [
   {
     id: '11111111-1111-1111-1111-111111111111',
     full_name: 'Esther Cruzado Albines',
-    email: 'esther.cruzado@quimicorp-postulante.pe',
-    phone: '+51 987 654 321',
+    email: '',
+    phone: '',
     created_at: new Date().toISOString()
   },
   {
     id: '22222222-2222-2222-2222-222222222222',
     full_name: 'Geraldine Ruby',
-    email: 'geraldine.ruby@quimicorp-postulante.pe',
-    phone: '+51 912 345 678',
+    email: '',
+    phone: '',
     created_at: new Date().toISOString()
   }
 ];
@@ -329,13 +329,11 @@ export const INITIAL_ASSESSMENTS: Assessment[] = [
     id: 'e1111111-1111-1111-1111-111111111111',
     candidate_id: '11111111-1111-1111-1111-111111111111',
     invitation_id: 'a1111111-1111-1111-1111-111111111111',
-    status: 'submitted',
-    current_question_index: 10,
-    objective_score: 52.00,
-    manual_score: 46.00,
-    total_score: 98.00,
-    started_at: new Date(Date.now() - 3600000).toISOString(),
-    completed_at: new Date(Date.now() - 2400000).toISOString(),
+    status: 'pending',
+    current_question_index: 1,
+    objective_score: 0,
+    manual_score: 0,
+    total_score: 0,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   },
@@ -353,158 +351,6 @@ export const INITIAL_ASSESSMENTS: Assessment[] = [
   }
 ];
 
-export const INITIAL_ANSWERS: Answer[] = [
-  {
-    id: 'ans_11111111_1',
-    assessment_id: 'e1111111-1111-1111-1111-111111111111',
-    question_id: 1,
-    selected_option: 'B',
-    started_at: new Date(Date.now() - 3500000).toISOString(),
-    submitted_at: new Date(Date.now() - 3470000).toISOString(),
-    elapsed_seconds: 30,
-    timed_out: false,
-    objective_points: 8.00
-  },
-  {
-    id: 'ans_11111111_2',
-    assessment_id: 'e1111111-1111-1111-1111-111111111111',
-    question_id: 2,
-    written_answer: 'Hola estimado cliente, entiendo que busque optimizar sus costos. Para comparar en igualdad de condiciones, ¿qué presentación y concentración le están cotizando? En QUIMICORP garantizamos productos industriales con registro sanitario y ficha técnica que rinden hasta el doble por dilución, con despacho directo a su local. Si me confirma un pedido para entrega mensual, con gusto puedo coordinar con gerencia una escala preferencial de volumen o enviarle una muestra sin costo para que verifique el rendimiento real.',
-    started_at: new Date(Date.now() - 3400000).toISOString(),
-    submitted_at: new Date(Date.now() - 3328000).toISOString(),
-    elapsed_seconds: 72,
-    timed_out: false,
-    objective_points: 0
-  },
-  {
-    id: 'ans_11111111_3',
-    assessment_id: 'e1111111-1111-1111-1111-111111111111',
-    question_id: 3,
-    written_answer: '1. Prospección directa en frío: Contactar 15 negocios locales al día (restaurantes, colegios, lavanderías) ofreciéndoles el catálogo mayorista con precios de fábrica o kit de prueba.\n2. Videos demostrativos antes y después: Publicar en TikTok e Instagram Reels casos reales de limpieza y desengrase pesado mostrando el rendimiento por dilución, invitando a comentar para cotizar.\n3. Grupos comerciales B2B: Publicar paquetes mayoristas en grupos de Facebook y comunidades de comerciantes, canalizando a los interesados al WhatsApp corporativo para cerrar cotizaciones.',
-    started_at: new Date(Date.now() - 3300000).toISOString(),
-    submitted_at: new Date(Date.now() - 3202000).toISOString(),
-    elapsed_seconds: 98,
-    timed_out: false,
-    objective_points: 0
-  },
-  {
-    id: 'ans_11111111_4',
-    assessment_id: 'e1111111-1111-1111-1111-111111111111',
-    question_id: 4,
-    selected_option: 'B',
-    started_at: new Date(Date.now() - 3150000).toISOString(),
-    submitted_at: new Date(Date.now() - 3122000).toISOString(),
-    elapsed_seconds: 28,
-    timed_out: false,
-    objective_points: 10.00
-  },
-  {
-    id: 'ans_11111111_5',
-    assessment_id: 'e1111111-1111-1111-1111-111111111111',
-    question_id: 5,
-    selected_option: 'C',
-    started_at: new Date(Date.now() - 3050000).toISOString(),
-    submitted_at: new Date(Date.now() - 3009000).toISOString(),
-    elapsed_seconds: 41,
-    timed_out: false,
-    objective_points: 10.00
-  },
-  {
-    id: 'ans_11111111_6',
-    assessment_id: 'e1111111-1111-1111-1111-111111111111',
-    question_id: 6,
-    selected_option: 'B',
-    started_at: new Date(Date.now() - 2950000).toISOString(),
-    submitted_at: new Date(Date.now() - 2915000).toISOString(),
-    elapsed_seconds: 35,
-    timed_out: false,
-    objective_points: 8.00
-  },
-  {
-    id: 'ans_11111111_7',
-    assessment_id: 'e1111111-1111-1111-1111-111111111111',
-    question_id: 7,
-    selected_option: 'C',
-    started_at: new Date(Date.now() - 2850000).toISOString(),
-    submitted_at: new Date(Date.now() - 2826000).toISOString(),
-    elapsed_seconds: 24,
-    timed_out: false,
-    objective_points: 8.00
-  },
-  {
-    id: 'ans_11111111_8',
-    assessment_id: 'e1111111-1111-1111-1111-111111111111',
-    question_id: 8,
-    written_answer: '¡Hola, estimado cliente! Te saluda Esther de QUIMICORP. Vi que ayer estuviste consultando por nuestros productos en la tienda virtual y dejaste tu orden pendiente. Quería consultar si tuviste alguna duda con la pasarela de pago o si necesitas que te ayude a coordinar el envío directo a tu negocio. Quedo a tu completa disposición para ayudarte a cerrar tu pedido con total tranquilidad.',
-    started_at: new Date(Date.now() - 2750000).toISOString(),
-    submitted_at: new Date(Date.now() - 2682000).toISOString(),
-    elapsed_seconds: 68,
-    timed_out: false,
-    objective_points: 0
-  },
-  {
-    id: 'ans_11111111_9',
-    assessment_id: 'e1111111-1111-1111-1111-111111111111',
-    question_id: 9,
-    written_answer: '[0-3s Gancho]: "¿Tienes un negocio y gastas demasiado en productos de limpieza que no rinden?" (mostrando piso industrial o grasa pesada en cocina).\n[4-10s Solución]: "En QUIMICORP fabricamos desengrasantes y desinfectantes concentrados al por mayor. Rinden el triple y ahorras hasta 35% por litro con entrega directa a tu local."\n[11-15s CTA]: "Escríbenos al enlace de nuestro perfil y solicita tu cotización mayorista hoy mismo."',
-    started_at: new Date(Date.now() - 2600000).toISOString(),
-    submitted_at: new Date(Date.now() - 2512000).toISOString(),
-    elapsed_seconds: 88,
-    timed_out: false,
-    objective_points: 0
-  },
-  {
-    id: 'ans_11111111_10',
-    assessment_id: 'e1111111-1111-1111-1111-111111111111',
-    question_id: 10,
-    selected_option: 'C',
-    started_at: new Date(Date.now() - 2450000).toISOString(),
-    submitted_at: new Date(Date.now() - 2418000).toISOString(),
-    elapsed_seconds: 32,
-    timed_out: false,
-    objective_points: 8.00
-  }
-];
+export const INITIAL_ANSWERS: Answer[] = [];
 
-export const INITIAL_REVIEWER_SCORES: ReviewerScore[] = [
-  {
-    id: 'rev_esther_2_maria',
-    answer_id: 'ans_11111111_2',
-    reviewer_id: 'maria_evaluadora',
-    reviewer_name: 'María',
-    criterion_scores: { c1: 3, c2: 3, c3: 3, c4: 3 },
-    total_points: 12,
-    observation: 'Excelente manejo de objeción de precio. No cedió margen y defendió rendimiento y ficha técnica.',
-    reviewed_at: new Date(Date.now() - 1800000).toISOString()
-  },
-  {
-    id: 'rev_esther_3_maria',
-    answer_id: 'ans_11111111_3',
-    reviewer_id: 'maria_evaluadora',
-    reviewer_name: 'María',
-    criterion_scores: { c1: 3, c2: 2, c3: 3, c4: 3 },
-    total_points: 11,
-    observation: 'Acciones prácticas y viables sin presupuesto. Buen enfoque B2B.',
-    reviewed_at: new Date(Date.now() - 1800000).toISOString()
-  },
-  {
-    id: 'rev_esther_8_maria',
-    answer_id: 'ans_11111111_8',
-    reviewer_id: 'maria_evaluadora',
-    reviewer_name: 'María',
-    criterion_scores: { c1: 3, c2: 3, c3: 3, c4: 3 },
-    total_points: 12,
-    observation: 'Tono consultivo, cordial y no invasivo. Indaga sobre dudas de pago y despacho.',
-    reviewed_at: new Date(Date.now() - 1800000).toISOString()
-  },
-  {
-    id: 'rev_esther_9_maria',
-    answer_id: 'ans_11111111_9',
-    reviewer_id: 'maria_evaluadora',
-    reviewer_name: 'María',
-    criterion_scores: { c1: 3, c2: 3, c3: 2, c4: 3 },
-    total_points: 11,
-    observation: 'Buen gancho inicial y llamado a la acción comercial claro para mayoristas.',
-    reviewed_at: new Date(Date.now() - 1800000).toISOString()
-  }
-];
+export const INITIAL_REVIEWER_SCORES: ReviewerScore[] = [];

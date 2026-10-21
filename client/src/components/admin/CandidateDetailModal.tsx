@@ -175,28 +175,44 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
             <div className="p-3 bg-white rounded-xl border border-slate-200">
               <span className="text-[11px] font-bold text-slate-500 uppercase">Estado</span>
               <p className="text-sm font-extrabold text-blue-900 capitalize mt-0.5">
-                {assessment.status === 'submitted' ? 'Pendiente revisión' : assessment.status}
+                {assessment.status === 'submitted' ? 'Pendiente revisión' :
+                 assessment.status === 'graded' ? 'Calificada' :
+                 assessment.status === 'in_progress' ? 'En progreso' : 'Pendiente de inicio'}
               </p>
             </div>
             <div className="p-3 bg-white rounded-xl border border-slate-200">
               <span className="text-[11px] font-bold text-slate-500 uppercase">Puntaje Automático</span>
               <p className="text-sm font-extrabold text-emerald-600 mt-0.5">
-                {assessment.objective_score} / 52 pts
+                {assessment.status === 'pending' ? '—' : `${assessment.objective_score} / 52 pts`}
               </p>
             </div>
             <div className="p-3 bg-white rounded-xl border border-slate-200">
               <span className="text-[11px] font-bold text-slate-500 uppercase">Puntaje Manual</span>
               <p className="text-sm font-extrabold text-blue-600 mt-0.5">
-                {assessment.manual_score} / 48 pts
+                {assessment.status === 'pending' ? '—' : `${assessment.manual_score} / 48 pts`}
               </p>
             </div>
             <div className="p-3 bg-white rounded-xl border border-slate-200">
               <span className="text-[11px] font-bold text-slate-500 uppercase">Total Obtenido</span>
               <p className="text-base font-black text-slate-900 mt-0.5">
-                {assessment.total_score} / 100 pts
+                {assessment.status === 'pending' ? 'Pendiente' : `${assessment.total_score} / 100 pts`}
               </p>
             </div>
           </div>
+
+          {assessment.status === 'pending' && (
+            <div className="mt-3 p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5 text-amber-900 text-xs">
+              <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-amber-950">
+                  Prueba Pendiente de Rendir
+                </p>
+                <p className="text-amber-800 mt-0.5">
+                  {candidate.full_name} aún no se ha conectado a rendir su evaluación. Cuando ella ingrese con su código, registre su correo Gmail personal y resuelva las preguntas, cada una de sus respuestas, tiempos y opciones marcadas aparecerán aquí registradas en tiempo real.
+                </p>
+              </div>
+            </div>
+          )}
 
           {feedbackMsg && (
             <div className={`mt-3 p-3 rounded-xl text-xs font-semibold ${
@@ -281,6 +297,8 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                           <p className="text-sm font-bold text-slate-900 mt-1">
                             {candidate_answer?.selected_option ? (
                               `Opción ${candidate_answer.selected_option}`
+                            ) : assessment.status === 'pending' ? (
+                              <span className="text-slate-400 font-normal italic">En espera (Prueba aún no iniciada)</span>
                             ) : (
                               <span className="text-red-500 font-normal italic">No respondió</span>
                             )}
@@ -308,7 +326,11 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                       <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/40">
                         <span className="text-xs font-bold text-blue-900 uppercase">Respuesta Redactada por la Candidata:</span>
                         <p className="text-sm text-slate-800 mt-2 leading-relaxed whitespace-pre-line bg-white p-3 rounded-lg border border-blue-100 shadow-inner">
-                          {candidate_answer?.written_answer || (
+                          {candidate_answer?.written_answer ? (
+                            candidate_answer.written_answer
+                          ) : assessment.status === 'pending' ? (
+                            <span className="text-slate-400 italic">En espera (La candidata aún no ha redactado su respuesta).</span>
+                          ) : (
                             <span className="text-red-500 italic">No registró respuesta escrita antes del tiempo límite.</span>
                           )}
                         </p>

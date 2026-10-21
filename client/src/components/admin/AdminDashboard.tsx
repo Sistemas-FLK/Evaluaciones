@@ -287,7 +287,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </div>
                           <div>
                             <p className="font-bold text-slate-900">{c.full_name}</p>
-                            <p className="text-[11px] text-slate-500">{c.email}</p>
+                            <p className="text-[11px] text-slate-500">
+                              {c.email ? c.email : <span className="text-amber-600 italic">Gmail pendiente de registro</span>}
+                            </p>
                           </div>
                         </div>
                       </td>

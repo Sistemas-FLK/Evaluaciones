@@ -34,8 +34,8 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onValidated }) => {
         if (!fullName || fullName === 'Esther Cruzado Albines' || fullName === 'Geraldine Ruby') {
           setFullName(res.candidate.full_name);
         }
-        if (!email) {
-          setEmail(res.candidate.email || '');
+        if (!email && res.candidate.email && !res.candidate.email.includes('@quimicorp-postulante.pe')) {
+          setEmail(res.candidate.email);
         }
         if (!phone && res.candidate.phone) {
           setPhone(res.candidate.phone);
@@ -68,8 +68,10 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onValidated }) => {
       return;
     }
 
-    if (!email.trim()) {
-      setErrorMessage('Por favor confirme o ingrese su correo electrónico de contacto.');
+    const emailClean = email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailClean || !emailRegex.test(emailClean)) {
+      setErrorMessage('Por favor ingrese un correo electrónico válido (ejemplo: tu_correo@gmail.com).');
       return;
     }
 
@@ -189,13 +191,16 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onValidated }) => {
               </div>
             </div>
 
-            {/* Campo 3: Correo Electrónico */}
+            {/* Campo 3: Correo Electrónico Personal / Gmail */}
             <div>
-              <label htmlFor="email" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                Correo Electrónico de Contacto *
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="email" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Correo Electrónico Personal (Gmail) *
+                </label>
+                <span className="text-[11px] font-semibold text-blue-600">Requerido para registro</span>
+              </div>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-blue-600">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
@@ -203,11 +208,14 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onValidated }) => {
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="postulante@ejemplo.com"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all text-slate-800 font-medium"
+                  onChange={(e) => setEmail(e.target.value.trim().toLowerCase())}
+                  placeholder="ejemplo.postulante@gmail.com"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all text-slate-800 font-medium shadow-sm"
                 />
               </div>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Ingresa tu correo personal Gmail. Tus respuestas y avances quedarán vinculados a esta cuenta.
+              </p>
             </div>
 
             {/* Campo 4: Teléfono / WhatsApp (Opcional) */}

@@ -18,8 +18,20 @@ import {
   INITIAL_ANSWERS,
   INITIAL_REVIEWER_SCORES
 } from './initialData.js';
+import { getSupabase } from '../config/supabase.js';
 
-// Base de datos en memoria para operación de alta disponibilidad o modo local
+async function syncSupabase(promise: PromiseLike<any>, opName: string) {
+  try {
+    const res = await promise;
+    if (res?.error) {
+      console.warn(`[Supabase ${opName}]`, res.error.message);
+    }
+  } catch (err: any) {
+    console.warn(`[Supabase ${opName}]`, err?.message || err);
+  }
+}
+
+// Base de datos en memoria para operación ultrarrápida con sincronización en la nube a Supabase PostgreSQL
 class MemoryDatabase {
   candidates: Map<string, Candidate> = new Map();
   invitations: Map<string, Invitation> = new Map();
@@ -33,6 +45,7 @@ class MemoryDatabase {
 
   constructor() {
     this.seed();
+    this.hydrateFromSupabase();
   }
 
   seed() {
@@ -45,6 +58,44 @@ class MemoryDatabase {
     INITIAL_REVIEWER_SCORES.forEach(r => this.reviewerScores.set(`${r.answer_id}_${r.reviewer_id}`, { ...r }));
   }
 
+  /**
+   * Hidrata y sincroniza la memoria con PostgreSQL Supabase al iniciar
+   */
+  async hydrateFromSupabase() {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    try {
+      console.log('[Supabase] Hidratando datos desde PostgreSQL Supabase...');
+      const [candRes, invRes, assRes, ansRes, revRes] = await Promise.all([
+        supabase.from('candidates').select('*'),
+        supabase.from('invitations').select('*'),
+        supabase.from('assessments').select('*'),
+        supabase.from('answers').select('*'),
+        supabase.from('reviewer_scores').select('*')
+      ]);
+
+      if (candRes.data && candRes.data.length > 0) {
+        candRes.data.forEach((c: any) => this.candidates.set(c.id, c));
+      }
+      if (invRes.data && invRes.data.length > 0) {
+        invRes.data.forEach((i: any) => this.invitations.set(i.id, i));
+      }
+      if (assRes.data && assRes.data.length > 0) {
+        assRes.data.forEach((a: any) => this.assessments.set(a.id, a));
+      }
+      if (ansRes.data && ansRes.data.length > 0) {
+        ansRes.data.forEach((ans: any) => this.answers.set(`${ans.assessment_id}_${ans.question_id}`, ans));
+      }
+      if (revRes.data && revRes.data.length > 0) {
+        revRes.data.forEach((r: any) => this.reviewerScores.set(`${r.answer_id}_${r.reviewer_id}`, r));
+      }
+      console.log(`[Supabase] Conectado y sincronizado: ${candRes.data?.length || 0} candidatas, ${assRes.data?.length || 0} evaluaciones.`);
+    } catch (err: any) {
+      console.warn('[Supabase Hydration Warning]', err?.message || err);
+    }
+  }
+
   // Candidatas
   getCandidates(): Candidate[] {
     return Array.from(this.candidates.values());
@@ -55,11 +106,25 @@ class MemoryDatabase {
   }
 
   getCandidateByEmail(email: string): Candidate | undefined {
+    if (!email) return undefined;
     return Array.from(this.candidates.values()).find(c => c.email.toLowerCase() === email.toLowerCase());
   }
 
   createCandidate(candidate: Candidate): Candidate {
     this.candidates.set(candidate.id, candidate);
+    const supabase = getSupabase();
+    if (supabase) {
+      syncSupabase(
+        supabase.from('candidates').upsert({
+          id: candidate.id,
+          full_name: candidate.full_name,
+          email: candidate.email,
+          phone: candidate.phone,
+          created_at: candidate.created_at
+        }),
+        'createCandidate'
+      );
+    }
     return candidate;
   }
 
@@ -68,6 +133,19 @@ class MemoryDatabase {
     if (!existing) return undefined;
     const updated = { ...existing, ...updates };
     this.candidates.set(id, updated);
+
+    const supabase = getSupabase();
+    if (supabase) {
+      syncSupabase(
+        supabase.from('candidates').update({
+          full_name: updated.full_name,
+          email: updated.email,
+          phone: updated.phone
+        }).eq('id', id),
+        'updateCandidate'
+      );
+    }
+
     return updated;
   }
 
@@ -81,6 +159,13 @@ class MemoryDatabase {
 
   createInvitation(invitation: Invitation): Invitation {
     this.invitations.set(invitation.id, invitation);
+    const supabase = getSupabase();
+    if (supabase) {
+      syncSupabase(
+        supabase.from('invitations').upsert(invitation),
+        'createInvitation'
+      );
+    }
     return invitation;
   }
 
@@ -89,6 +174,13 @@ class MemoryDatabase {
     if (!existing) return undefined;
     const updated = { ...existing, ...updates };
     this.invitations.set(id, updated);
+    const supabase = getSupabase();
+    if (supabase) {
+      syncSupabase(
+        supabase.from('invitations').update(updates).eq('id', id),
+        'updateInvitation'
+      );
+    }
     return updated;
   }
 
@@ -107,6 +199,13 @@ class MemoryDatabase {
 
   createAssessment(assessment: Assessment): Assessment {
     this.assessments.set(assessment.id, assessment);
+    const supabase = getSupabase();
+    if (supabase) {
+      syncSupabase(
+        supabase.from('assessments').upsert(assessment),
+        'createAssessment'
+      );
+    }
     return assessment;
   }
 
@@ -115,6 +214,15 @@ class MemoryDatabase {
     if (!existing) return undefined;
     const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
     this.assessments.set(id, updated);
+
+    const supabase = getSupabase();
+    if (supabase) {
+      syncSupabase(
+        supabase.from('assessments').update(updates).eq('id', id),
+        'updateAssessment'
+      );
+    }
+
     return updated;
   }
 
@@ -145,6 +253,27 @@ class MemoryDatabase {
   saveAnswer(answer: Answer): Answer {
     const key = `${answer.assessment_id}_${answer.question_id}`;
     this.answers.set(key, answer);
+
+    const supabase = getSupabase();
+    if (supabase) {
+      syncSupabase(
+        supabase.from('answers').upsert({
+          id: answer.id,
+          assessment_id: answer.assessment_id,
+          question_id: answer.question_id,
+          selected_option: answer.selected_option || null,
+          written_answer: answer.written_answer || null,
+          draft_answer: answer.draft_answer || null,
+          started_at: answer.started_at,
+          submitted_at: answer.submitted_at || null,
+          elapsed_seconds: answer.elapsed_seconds,
+          timed_out: answer.timed_out,
+          objective_points: answer.objective_points
+        }, { onConflict: 'assessment_id,question_id' }),
+        'saveAnswer'
+      );
+    }
+
     return answer;
   }
 
@@ -156,6 +285,24 @@ class MemoryDatabase {
   saveReviewerScore(score: ReviewerScore): ReviewerScore {
     const key = `${score.answer_id}_${score.reviewer_id}`;
     this.reviewerScores.set(key, score);
+
+    const supabase = getSupabase();
+    if (supabase) {
+      syncSupabase(
+        supabase.from('reviewer_scores').upsert({
+          id: score.id,
+          answer_id: score.answer_id,
+          reviewer_id: score.reviewer_id,
+          reviewer_name: score.reviewer_name,
+          criterion_scores: score.criterion_scores,
+          total_points: score.total_points,
+          observation: score.observation || '',
+          reviewed_at: score.reviewed_at
+        }, { onConflict: 'answer_id,reviewer_id' }),
+        'saveReviewerScore'
+      );
+    }
+
     return score;
   }
 
@@ -166,6 +313,15 @@ class MemoryDatabase {
 
   saveFinalReview(review: FinalReview): FinalReview {
     this.finalReviews.set(review.assessment_id, review);
+
+    const supabase = getSupabase();
+    if (supabase) {
+      syncSupabase(
+        supabase.from('final_reviews').upsert(review),
+        'saveFinalReview'
+      );
+    }
+
     return review;
   }
 
@@ -180,6 +336,15 @@ class MemoryDatabase {
       created_at: new Date().toISOString()
     };
     this.auditLogs.unshift(log);
+
+    const supabase = getSupabase();
+    if (supabase) {
+      syncSupabase(
+        supabase.from('audit_logs').insert(log),
+        'addAuditLog'
+      );
+    }
+
     return log;
   }
 

@@ -53,7 +53,7 @@ router.get('/overview', verifyAdmin, async (_req: Request, res: Response) => {
 // Detalle individual de candidata
 router.get('/candidate/:id', verifyAdmin, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const detail = await reviewService.getCandidateDetail(id);
     res.json(detail);
   } catch (error: any) {
@@ -119,7 +119,7 @@ router.post('/candidate/create', verifyAdmin, async (req: Request, res: Response
 // Reiniciar evaluación de forma auditada
 router.post('/candidate/:assessmentId/reset', verifyAdmin, async (req: Request, res: Response) => {
   try {
-    const { assessmentId } = req.params;
+    const assessmentId = req.params.assessmentId as string;
     const { actor_id, reason } = req.body;
     const result = await assessmentService.resetAssessment(
       assessmentId, 
