@@ -11,7 +11,8 @@ import {
   Save, 
   FileText,
   HelpCircle,
-  ShieldCheck
+  ShieldCheck,
+  Sparkles
 } from 'lucide-react';
 import { CandidateDetailResponse } from '../../types';
 import { submitReviewerScore, resetAssessment } from '../../services/api';
@@ -312,6 +313,49 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                           )}
                         </p>
                       </div>
+
+                      {/* Guía Oficial del Evaluador y Respuesta Modelo */}
+                      {answer_key.benchmark_guide && (
+                        <details className="bg-amber-50/80 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 group">
+                          <summary className="font-bold flex items-center justify-between cursor-pointer select-none">
+                            <span className="flex items-center gap-1.5 text-amber-900">
+                              <Sparkles className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                              <span>Guía Oficial del Evaluador & Respuesta Modelo de Referencia</span>
+                            </span>
+                            <span className="text-[11px] text-amber-700 underline group-open:hidden">Ver guía de calificación</span>
+                          </summary>
+                          <div className="mt-3 space-y-3 pt-2.5 border-t border-amber-200/80">
+                            <div>
+                              <span className="font-bold text-[11px] uppercase tracking-wider text-amber-950 block">Enfoque Esperado:</span>
+                              <p className="mt-0.5 text-slate-700 leading-relaxed">{answer_key.benchmark_guide.ideal_approach}</p>
+                            </div>
+                            <div>
+                              <span className="font-bold text-[11px] uppercase tracking-wider text-amber-950 block">Respuesta Modelo Óptima (12 pts):</span>
+                              <p className="mt-1 text-slate-800 italic bg-white p-3 rounded-lg border border-amber-200 leading-relaxed whitespace-pre-line shadow-xs">
+                                "{answer_key.benchmark_guide.sample_answer}"
+                              </p>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                              <div className="bg-white p-2.5 rounded-lg border border-emerald-200 text-emerald-950">
+                                <span className="font-bold text-[11px] uppercase block mb-1 text-emerald-800">✅ Fortalezas a premiar (3 pts):</span>
+                                <ul className="list-disc list-inside space-y-0.5 text-[11px] text-slate-700">
+                                  {answer_key.benchmark_guide.key_strengths?.map((str: string, i: number) => (
+                                    <li key={i}>{str}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                              <div className="bg-white p-2.5 rounded-lg border border-red-200 text-red-950">
+                                <span className="font-bold text-[11px] uppercase block mb-1 text-red-800">⚠️ Señales de alerta (0-1 pt):</span>
+                                <ul className="list-disc list-inside space-y-0.5 text-[11px] text-slate-700">
+                                  {answer_key.benchmark_guide.red_flags?.map((flag: string, i: number) => (
+                                    <li key={i}>{flag}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        </details>
+                      )}
 
                       {/* Evaluaciones previas de otros evaluadores */}
                       {reviews.length > 0 && (

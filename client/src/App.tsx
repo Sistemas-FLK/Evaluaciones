@@ -8,6 +8,7 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { SupabaseConfigModal } from './components/admin/SupabaseConfigModal';
 import { checkHealth, startAssessment } from './services/api';
+import { ShieldCheck } from 'lucide-react';
 
 export function App() {
   const [currentRole, setCurrentRole] = useState<'candidate' | 'admin'>('candidate');
@@ -38,6 +39,22 @@ export function App() {
       })
       .catch(err => console.warn('Health check warning:', err));
   }, []);
+
+  // Soporte para ingresar directo por URL (#admin o #evaluador)
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === '#admin' || window.location.hash === '#evaluador') {
+        if (!adminToken) {
+          setIsAdminLoginOpen(true);
+        } else {
+          setCurrentRole('admin');
+        }
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, [adminToken]);
 
   // Manejador al validar código de candidata
   const handleCandidateValidated = (data: { candidate: any; assessment: any; accessCode: string }) => {
@@ -97,6 +114,8 @@ export function App() {
         supabaseStatus={supabaseStatus}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         candidateName={currentCandidate?.full_name}
+        reviewerName={adminReviewer.name}
+        onLogoutAdmin={handleAdminLogout}
       />
 
       <main className="flex-1">
@@ -148,6 +167,17 @@ export function App() {
         <p>
           &copy; {new Date().getFullYear()} <strong>QUIMICORP PERÚ S.A.C.</strong> — Sistema de Evaluación Comercial y Captación Digital. Todos los derechos reservados.
         </p>
+        <div className="flex items-center justify-center gap-3 mt-1.5">
+          <button
+            type="button"
+            onClick={() => handleSwitchRole('admin')}
+            className="text-[11px] text-slate-400 hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer"
+            title="Panel de evaluación y gerencia"
+          >
+            <ShieldCheck className="w-3 h-3" />
+            <span>Acceso Evaluadores</span>
+          </button>
+        </div>
       </footer>
 
       {/* Modal de autenticación evaluador */}

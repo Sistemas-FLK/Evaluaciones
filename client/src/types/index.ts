@@ -76,6 +76,12 @@ export interface QuestionDetailItem {
     correct_option: string | null;
     scoring_metadata: any;
     explanation: string | null;
+    benchmark_guide?: {
+      ideal_approach: string;
+      sample_answer: string;
+      key_strengths: string[];
+      red_flags: string[];
+    } | null;
   };
   candidate_answer: {
     id: string;

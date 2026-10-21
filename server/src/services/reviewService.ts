@@ -95,7 +95,8 @@ export class ReviewService {
         answer_key: {
           correct_option: answerKey?.correct_option || null,
           scoring_metadata: answerKey?.scoring_metadata || null,
-          explanation: answerKey?.explanation || null
+          explanation: answerKey?.explanation || null,
+          benchmark_guide: answerKey?.benchmark_guide || null
         },
         candidate_answer: answer ? {
           id: answer.id,

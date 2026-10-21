@@ -157,7 +157,22 @@ export const INITIAL_ANSWER_KEYS: AnswerKey[] = [
         { id: 'c4', name: 'Mantiene profesionalismo y no promete descuentos no autorizados', max: 3 }
       ]
     },
-    explanation: 'Evalúa negociación consultiva bajo presión de precio.'
+    explanation: 'Evalúa negociación consultiva bajo presión de precio.',
+    benchmark_guide: {
+      ideal_approach: 'Indagar amablemente qué producto/concentración le ofrecen por S/ 1,050. Defender el valor QUIMICORP (fórmula concentrada certificada con ficha técnica, mayor rendimiento por dilución, entrega puntual y factura con garantía de lote). Plantear alternativas comerciales (escala por volumen, muestra o despacho) sin regalar margen de golpe.',
+      sample_answer: 'Hola estimado, entiendo perfectamente que busque optimizar sus costos. Para comparar bajo igualdad de condiciones, ¿qué concentración y presentación le están cotizando? En QUIMICORP garantizamos productos con registro sanitario y ficha técnica que rinden hasta el doble por dilución, además de entrega inmediata sin costo en su local. Si me confirma un pedido para entrega mensual, con gusto puedo coordinar con gerencia una escala preferencial o enviarle una muestra sin costo para que verifique el rendimiento real.',
+      key_strengths: [
+        'Mantiene la calma y no cede el descuento en pánico',
+        'Investiga especificaciones para comparar justamente',
+        'Argumenta rendimiento por litro, calidad certificada y servicio de entrega',
+        'Propone una alternativa constructiva (escala por volumen o muestra)'
+      ],
+      red_flags: [
+        'Bajar el precio a S/ 1,050 de inmediato sin autorización',
+        'Descalificar o insultar al competidor',
+        'Responder de forma cortante con un simple "ese es nuestro precio"'
+      ]
+    }
   },
   {
     question_id: 3,
@@ -170,7 +185,22 @@ export const INITIAL_ANSWER_KEYS: AnswerKey[] = [
         { id: 'c4', name: 'Indicadores para medir los resultados', max: 3 }
       ]
     },
-    explanation: 'Evalúa estrategia orgánica de captación sin presupuesto de pauta publicitaria.'
+    explanation: 'Evalúa estrategia orgánica de captación sin presupuesto de pauta publicitaria.',
+    benchmark_guide: {
+      ideal_approach: 'Proponer 3 acciones orgánicas realizables en 7 días sin costo de pauta: 1) Prospección B2B directa a negocios afines (restaurantes, talleres, hoteles), 2) Videos de demostración visual (antes y después) en TikTok e Instagram Reels, 3) Publicación activa en comunidades y grupos comerciales de Facebook/WhatsApp, con enlace al catálogo virtual.',
+      sample_answer: '1. Prospección directa en frío: Contactar 15 negocios locales al día vía WhatsApp/llamada (restaurantes, colegios, lavanderías) ofreciendo cotización mayorista o kit de prueba.\n2. Videos demostrativos antes/después: Publicar en TikTok e Instagram Reels casos reales de limpieza pesada mostrando el poder desengrasante, invitando a comentar "INFO" para enviar enlace del catálogo.\n3. Comunidades y grupos B2B: Publicar paquetes mayoristas con precio de fábrica en grupos de comerciantes y ferreterías en Facebook y WhatsApp, midiendo diariamente los leads que ingresan.',
+      key_strengths: [
+        'Propone 3 acciones concretas y viables en el plazo de 7 días',
+        'Respeta estrictamente el presupuesto cero (no exige pauta pagada)',
+        'Estrategia clara para llevar a los interesados a WhatsApp o la web',
+        'Menciona métricas de seguimiento (consultas por día)'
+      ],
+      red_flags: [
+        'Pedir pagar publicidad en Facebook Ads o contratar influencers',
+        'Generalidades vagas como "subir historias" o "hacer sorteos"',
+        'No orientar el contenido a captar clientes comerciales'
+      ]
+    }
   },
   {
     question_id: 4,
@@ -207,7 +237,22 @@ export const INITIAL_ANSWER_KEYS: AnswerKey[] = [
         { id: 'c4', name: 'Respeto por el cliente y ausencia de presión indebida', max: 3 }
       ]
     },
-    explanation: 'Evalúa seguimiento respetuoso y no invasivo a compras pendientes.'
+    explanation: 'Evalúa seguimiento respetuoso y no invasivo a compras pendientes.',
+    benchmark_guide: {
+      ideal_approach: 'Mensaje empático y personalizado saludando por su nombre. Ofrece asistencia técnica para resolver dudas sobre la presentación, métodos de pago o entrega, sin hostigar ni sonar desesperado.',
+      sample_answer: '¡Hola, estimado [Nombre]! Te saluda [Nombre] de QUIMICORP. Vi que ayer estuviste consultando por nuestro [Nombre del Producto] en la tienda virtual y dejaste tu orden pendiente. Quería consultar si tuviste alguna duda con la pasarela de pago o si necesitas que te ayude a coordinar el envío directo a tu negocio. Quedo a tu completa disposición para ayudarte.',
+      key_strengths: [
+        'Personalización con el nombre del cliente y tono cálido',
+        'Disposición genuina de ayuda en vez de presión agresiva',
+        'Identifica posibles barreras (pago, flete, ficha técnica)',
+        'Cierre abierto y profesional acorde a la imagen de QUIMICORP'
+      ],
+      red_flags: [
+        'Mensajes de reclamo como "¿Por qué no completó su compra?"',
+        'Falsas amenazas de urgencia ("apúrese que se acaba")',
+        'Enviar solo el enlace de pago sin ningún mensaje consultivo'
+      ]
+    }
   },
   {
     question_id: 9,
@@ -220,7 +265,22 @@ export const INITIAL_ANSWER_KEYS: AnswerKey[] = [
         { id: 'c4', name: 'Llamada a la acción comercial clara', max: 3 }
       ]
     },
-    explanation: 'Evalúa síntesis comercial y creatividad para video corto en redes.'
+    explanation: 'Evalúa síntesis comercial y creatividad para video corto en redes.',
+    benchmark_guide: {
+      ideal_approach: 'Estructura ágil para 15 segundos: Gancho en los primeros 3 segundos enfocado en el dolor del negocio, solución con el producto QUIMICORP en 4-10 segundos destacando rendimiento y ahorro por litro, y llamado a la acción comercial en 11-15 segundos sin promesas falsas.',
+      sample_answer: '[0-3s Gancho]: "¿Tienes un negocio y gastas demasiado en productos de limpieza que no rinden?" (mostrando suciedad pesada en cocina o taller).\n[4-10s Solución]: "En QUIMICORP fabricamos desengrasantes y desinfectantes concentrados al por mayor. Rinden hasta el triple y ahorras hasta 35% por litro con entrega directa a tu local."\n[11-15s CTA]: "Escríbenos al enlace de nuestro perfil y solicita tu cotización mayorista hoy mismo."',
+      key_strengths: [
+        'Gancho contundente en los primeros 3 segundos',
+        'Enfocado en compradores mayoristas y negocios',
+        'Beneficio económico y de rendimiento real sin inventar propiedades',
+        'Llamado a la acción (CTA) directo al WhatsApp o tienda'
+      ],
+      red_flags: [
+        'Afirmar que "elimina el 100% de bacterias y virus para siempre"',
+        'Iniciar con logos corporativos o música lenta sin gancho',
+        'No incluir llamado a cotizar o comprar'
+      ]
+    }
   },
   {
     question_id: 10,

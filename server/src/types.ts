@@ -44,6 +44,12 @@ export interface AnswerKey {
     criteria?: RubricCriterion[];
   };
   explanation?: string;
+  benchmark_guide?: {
+    ideal_approach: string;
+    sample_answer: string;
+    key_strengths: string[];
+    red_flags: string[];
+  };
 }
 
 export interface Candidate {
