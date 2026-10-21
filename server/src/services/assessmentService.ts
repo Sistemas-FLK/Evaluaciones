@@ -258,7 +258,15 @@ export class AssessmentService {
 
     let objectivePoints = 0;
     const selectedOption = payload.selected_option?.trim().toUpperCase();
-    const writtenAnswer = payload.written_answer?.trim() || '';
+    let writtenAnswer = payload.written_answer?.trim() || '';
+
+    // Si la respuesta escrita vino vacía pero había un borrador guardado en tiempo real, rescatarlo
+    if (!writtenAnswer && question.question_type === 'open_text') {
+      const existingAnswer = db.getAnswer(assessmentId, questionId);
+      if (existingAnswer?.draft_answer) {
+        writtenAnswer = existingAnswer.draft_answer;
+      }
+    }
 
     // Calificación automática de preguntas objetivas (1, 4, 5, 6, 7, 10)
     if (question.question_type === 'multiple_choice' && answerKey?.correct_option) {

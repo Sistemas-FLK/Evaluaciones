@@ -1,13 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Clock, 
   AlertCircle, 
   Send, 
   Save, 
   HelpCircle, 
-  CheckCircle, 
   User, 
-  Sparkles,
   ShieldAlert
 } from 'lucide-react';
 import { 
@@ -35,13 +33,55 @@ export const ExamStep: React.FC<ExamStepProps> = ({
   const [writtenAnswer, setWrittenAnswer] = useState<string>('');
   const [draftSaved, setDraftSaved] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [showEmptyWarning, setShowEmptyWarning] = useState<boolean>(false);
 
+  // Refs para evitar problemas de cierres obsoletos (stale closures) en el temporizador
+  const selectedOptionRef = useRef<string>('');
+  const writtenAnswerRef = useRef<string>('');
+  const submittingRef = useRef<boolean>(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const targetEndTimeRef = useRef<number>(0);
   const draftDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const questionStartTimeRef = useRef<number>(Date.now());
 
-  // Cargar pregunta actual
-  const loadQuestion = async () => {
+  // Sincronizar refs con el estado más reciente
+  useEffect(() => {
+    selectedOptionRef.current = selectedOption;
+  }, [selectedOption]);
+
+  useEffect(() => {
+    writtenAnswerRef.current = writtenAnswer;
+  }, [writtenAnswer]);
+
+  useEffect(() => {
+    submittingRef.current = submitting;
+  }, [submitting]);
+
+  // Aplicar datos de una pregunta y reiniciar temporizador de forma precisa
+  const applyQuestionData = useCallback((data: any) => {
+    setQuestionData(data);
+    const duration = data.time_remaining_seconds !== undefined 
+      ? data.time_remaining_seconds 
+      : data.question.time_limit_seconds;
+
+    setSecondsRemaining(duration);
+    targetEndTimeRef.current = Date.now() + duration * 1000;
+    questionStartTimeRef.current = Date.now();
+
+    setSelectedOption('');
+    selectedOptionRef.current = '';
+
+    const initialDraft = data.draft_answer || '';
+    setWrittenAnswer(initialDraft);
+    writtenAnswerRef.current = initialDraft;
+
+    setDraftSaved(true);
+    setShowEmptyWarning(false);
+    setErrorMsg('');
+  }, []);
+
+  // Cargar pregunta inicial
+  const loadInitialQuestion = async () => {
     try {
       setLoading(true);
       setErrorMsg('');
@@ -52,12 +92,7 @@ export const ExamStep: React.FC<ExamStepProps> = ({
         return;
       }
 
-      setQuestionData(data);
-      setSecondsRemaining(data.time_remaining_seconds || data.question.time_limit_seconds);
-      setSelectedOption('');
-      setWrittenAnswer(data.draft_answer || '');
-      setDraftSaved(true);
-      questionStartTimeRef.current = Date.now();
+      applyQuestionData(data);
     } catch (err: any) {
       setErrorMsg(err.message || 'Error al cargar la pregunta.');
     } finally {
@@ -66,38 +101,73 @@ export const ExamStep: React.FC<ExamStepProps> = ({
   };
 
   useEffect(() => {
-    loadQuestion();
+    loadInitialQuestion();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
     };
   }, [assessmentId]);
 
-  // Manejador del cronómetro
+  // Función unificada de envío (manual o por expiración de tiempo)
+  const executeSubmit = useCallback(async (isAutoTimeout = false) => {
+    if (submittingRef.current || !questionData?.question) return;
+
+    submittingRef.current = true;
+    setSubmitting(true);
+    setShowEmptyWarning(false);
+
+    try {
+      const clientElapsed = Math.max(1, Math.floor((Date.now() - questionStartTimeRef.current) / 1000));
+      const res = await submitQuestionAnswer(assessmentId, questionData.question.id, {
+        selected_option: selectedOptionRef.current,
+        written_answer: writtenAnswerRef.current,
+        client_elapsed_seconds: clientElapsed
+      });
+
+      if (res.finished) {
+        onFinished();
+        return;
+      }
+
+      // Avanzar directamente con la respuesta que el servidor ya entrega (sin pantalla de carga ni parpadeo)
+      applyQuestionData(res);
+    } catch (err: any) {
+      console.error('Error al enviar respuesta:', err);
+      setErrorMsg(err.message || 'Error al registrar respuesta. Inténtalo de nuevo.');
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  }, [assessmentId, questionData, applyQuestionData, onFinished]);
+
+  // Manejador del temporizador basado en tiempo real (muro de reloj)
   useEffect(() => {
-    if (loading || submitting || !questionData) return;
+    if (loading || !questionData) return;
 
     if (timerRef.current) clearInterval(timerRef.current);
 
     timerRef.current = setInterval(() => {
-      setSecondsRemaining((prev) => {
-        if (prev <= 1) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          handleAutoSubmitOnTimeout();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      if (submittingRef.current) return;
+
+      const now = Date.now();
+      const left = Math.max(0, Math.ceil((targetEndTimeRef.current - now) / 1000));
+      setSecondsRemaining(left);
+
+      if (left <= 0) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        executeSubmit(true);
+      }
+    }, 500);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [loading, submitting, questionData]);
+  }, [loading, questionData, executeSubmit]);
 
-  // Auto-guardado de borrador en preguntas abiertas
+  // Auto-guardado de borrador en preguntas abiertas (anti-pérdida)
   const handleWrittenChange = (val: string) => {
     setWrittenAnswer(val);
+    writtenAnswerRef.current = val;
     setDraftSaved(false);
 
     if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
@@ -113,65 +183,21 @@ export const ExamStep: React.FC<ExamStepProps> = ({
     }, 800);
   };
 
-  // Envío cuando el tiempo se agota automáticamente (00:00)
-  const handleAutoSubmitOnTimeout = async () => {
-    if (submitting) return;
-    setSubmitting(true);
-    try {
-      const clientElapsed = Math.floor((Date.now() - questionStartTimeRef.current) / 1000);
-      const res = await submitQuestionAnswer(assessmentId, questionData.question.id, {
-        selected_option: selectedOption,
-        written_answer: writtenAnswer,
-        client_elapsed_seconds: clientElapsed
-      });
-
-      if (res.finished) {
-        onFinished();
-      } else {
-        await loadQuestion();
-      }
-    } catch (err: any) {
-      console.error('Error en auto-submit', err);
-      // Reintentar cargar estado actual
-      await loadQuestion();
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Envío manual voluntario por la candidata
-  const handleManualSubmit = async () => {
+  // Clic en "Guardar y continuar"
+  const handleManualClick = () => {
     if (submitting) return;
 
-    // Validación suave: alertar si está vacío pero permitir si insiste
-    if (questionData.question.question_type === 'multiple_choice' && !selectedOption) {
-      if (!confirm('No has seleccionado ninguna opción. ¿Deseas continuar y registrarla como no respondida?')) {
-        return;
-      }
-    } else if (questionData.question.question_type === 'open_text' && !writtenAnswer.trim()) {
-      if (!confirm('No has redactado ninguna respuesta. ¿Deseas continuar y dejarla en blanco?')) {
-        return;
-      }
+    // Validación suave no bloqueante
+    const isMC = questionData?.question?.question_type === 'multiple_choice';
+    const isOptionEmpty = isMC && !selectedOption;
+    const isTextEmpty = !isMC && !writtenAnswer.trim();
+
+    if ((isOptionEmpty || isTextEmpty) && !showEmptyWarning) {
+      setShowEmptyWarning(true);
+      return;
     }
 
-    setSubmitting(true);
-    try {
-      const clientElapsed = Math.floor((Date.now() - questionStartTimeRef.current) / 1000);
-      const res = await submitQuestionAnswer(assessmentId, questionData.question.id, {
-        selected_option: selectedOption,
-        written_answer: writtenAnswer,
-        client_elapsed_seconds: clientElapsed
-      });
-
-      if (res.finished) {
-        onFinished();
-      } else {
-        await loadQuestion();
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error al registrar respuesta. Inténtalo de nuevo.');
-      setSubmitting(false);
-    }
+    executeSubmit(false);
   };
 
   // Formato MM:SS
@@ -190,7 +216,7 @@ export const ExamStep: React.FC<ExamStepProps> = ({
     );
   }
 
-  if (errorMsg) {
+  if (errorMsg && !questionData) {
     return (
       <div className="max-w-2xl mx-auto py-12 px-4">
         <div className="p-6 bg-red-50 border border-red-200 rounded-2xl text-center space-y-4">
@@ -198,7 +224,7 @@ export const ExamStep: React.FC<ExamStepProps> = ({
           <h2 className="text-lg font-bold text-red-800">Incidencia en la evaluación</h2>
           <p className="text-sm text-red-600">{errorMsg}</p>
           <button
-            onClick={loadQuestion}
+            onClick={loadInitialQuestion}
             className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl text-sm transition-all cursor-pointer"
           >
             Reconectar sesión
@@ -272,6 +298,31 @@ export const ExamStep: React.FC<ExamStepProps> = ({
 
         {/* Cuerpo del ejercicio */}
         <div className="p-6 sm:p-8 space-y-6">
+          {/* Alerta de error si ocurrió durante el envío */}
+          {errorMsg && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-500" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {/* Advertencia no bloqueante de campo vacío */}
+          {showEmptyWarning && (
+            <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-800 flex items-center justify-between gap-3 animate-shake">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <span>No has completado tu respuesta. Si continúas ahora, se registrará en blanco.</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => executeSubmit(false)}
+                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs whitespace-nowrap cursor-pointer transition-all"
+              >
+                Continuar de todos modos
+              </button>
+            </div>
+          )}
+
           {/* Tarjeta de Situación contextual (si aplica) */}
           {question.situation && (
             <div className="bg-slate-50 border-l-4 border-blue-600 p-4 rounded-r-xl text-slate-700 text-sm leading-relaxed">
@@ -314,7 +365,10 @@ export const ExamStep: React.FC<ExamStepProps> = ({
                       name="quiz-option"
                       value={opt.id}
                       checked={isSelected}
-                      onChange={() => setSelectedOption(opt.id)}
+                      onChange={() => {
+                        setSelectedOption(opt.id);
+                        setShowEmptyWarning(false);
+                      }}
                       className="mt-1 w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
                     />
                     <div className="flex-1">
@@ -349,7 +403,12 @@ export const ExamStep: React.FC<ExamStepProps> = ({
               <textarea
                 rows={6}
                 value={writtenAnswer}
-                onChange={(e) => handleWrittenChange(e.target.value)}
+                onChange={(e) => {
+                  handleWrittenChange(e.target.value);
+                  if (showEmptyWarning && e.target.value.trim()) {
+                    setShowEmptyWarning(false);
+                  }
+                }}
                 placeholder="Redacta aquí tu respuesta completa..."
                 className="w-full p-4 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white text-slate-800 leading-relaxed font-normal shadow-inner"
               />
@@ -370,7 +429,7 @@ export const ExamStep: React.FC<ExamStepProps> = ({
             <button
               type="button"
               disabled={submitting}
-              onClick={handleManualSubmit}
+              onClick={handleManualClick}
               className="w-full sm:w-auto px-7 py-3 bg-[#08265C] hover:bg-[#0D3882] text-white text-sm font-bold rounded-xl shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] cursor-pointer disabled:opacity-60"
             >
               {submitting ? (
