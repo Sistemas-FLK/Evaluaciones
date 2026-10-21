@@ -5,6 +5,7 @@
   "scripts": {
     "build": "npm --prefix server install && npm --prefix server run build",
     "start": "npm --prefix server run start:prod",
+    "start:prod": "npm --prefix server run start:prod",
     "dev": "npm --prefix server run dev"
   },
   "keywords": ["quimicorp", "talent", "assessment", "sales", "ecommerce"],
