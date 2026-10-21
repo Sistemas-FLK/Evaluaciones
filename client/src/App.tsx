@@ -167,17 +167,6 @@ export function App() {
         <p>
           &copy; {new Date().getFullYear()} <strong>QUIMICORP PERÚ S.A.C.</strong> — Sistema de Evaluación Comercial y Captación Digital. Todos los derechos reservados.
         </p>
-        <div className="flex items-center justify-center gap-3 mt-1.5">
-          <button
-            type="button"
-            onClick={() => handleSwitchRole('admin')}
-            className="text-[11px] text-slate-400 hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer"
-            title="Panel de evaluación y gerencia"
-          >
-            <ShieldCheck className="w-3 h-3" />
-            <span>Acceso Evaluadores</span>
-          </button>
-        </div>
       </footer>
 
       {/* Modal de autenticación evaluador */}
