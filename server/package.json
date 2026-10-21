@@ -2,11 +2,11 @@
   "name": "quimicorp-talent-server",
   "version": "1.0.0",
   "description": "Backend API para QUIMICORP TALENT - Evaluacion Comercial",
+  "type": "module",
   "main": "src/index.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "tsx src/index.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
