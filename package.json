@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "QUIMICORP TALENT — Plataforma de Evaluación Comercial",
   "scripts": {
-    "build": "npm --prefix server install && npm --prefix server run build",
+    "build": "npm --prefix client install && npm --prefix client run build && npm --prefix server install && npm --prefix server run build",
     "start": "npm --prefix server run start:prod",
     "start:prod": "npm --prefix server run start:prod",
     "dev": "npm --prefix server run dev"
