@@ -419,7 +419,9 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                           {/* Criterio 1 */}
-                          <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5">
+                          <div className={`p-3 rounded-lg border space-y-1.5 transition-all ${
+                            candidate_answer ? 'bg-white border-slate-200' : 'bg-slate-100/70 border-slate-200 opacity-70'
+                          }`}>
                             <span className="font-semibold text-slate-800 block">
                               1. {answer_key.scoring_metadata?.criteria?.[0]?.name || 'Investigación / Diagnóstico'}
                             </span>
@@ -428,11 +430,14 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                                 <button
                                   key={val}
                                   type="button"
+                                  disabled={!candidate_answer}
                                   onClick={() => handleScoreChange(question.id, 'c1', val)}
-                                  className={`flex-1 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
-                                    rubricScores.c1 === val
-                                      ? 'bg-blue-600 text-white shadow-sm'
-                                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                  className={`flex-1 py-1 rounded text-xs font-bold transition-all ${
+                                    !candidate_answer 
+                                      ? 'cursor-not-allowed bg-slate-200 text-slate-400' 
+                                      : rubricScores.c1 === val
+                                        ? 'bg-blue-600 text-white shadow-sm cursor-pointer'
+                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer'
                                   }`}
                                 >
                                   {val}
@@ -442,7 +447,9 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                           </div>
 
                           {/* Criterio 2 */}
-                          <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5">
+                          <div className={`p-3 rounded-lg border space-y-1.5 transition-all ${
+                            candidate_answer ? 'bg-white border-slate-200' : 'bg-slate-100/70 border-slate-200 opacity-70'
+                          }`}>
                             <span className="font-semibold text-slate-800 block">
                               2. {answer_key.scoring_metadata?.criteria?.[1]?.name || 'Argumentación comercial'}
                             </span>
@@ -451,11 +458,14 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                                 <button
                                   key={val}
                                   type="button"
+                                  disabled={!candidate_answer}
                                   onClick={() => handleScoreChange(question.id, 'c2', val)}
-                                  className={`flex-1 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
-                                    rubricScores.c2 === val
-                                      ? 'bg-blue-600 text-white shadow-sm'
-                                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                  className={`flex-1 py-1 rounded text-xs font-bold transition-all ${
+                                    !candidate_answer 
+                                      ? 'cursor-not-allowed bg-slate-200 text-slate-400' 
+                                      : rubricScores.c2 === val
+                                        ? 'bg-blue-600 text-white shadow-sm cursor-pointer'
+                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer'
                                   }`}
                                 >
                                   {val}
@@ -465,7 +475,9 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                           </div>
 
                           {/* Criterio 3 */}
-                          <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5">
+                          <div className={`p-3 rounded-lg border space-y-1.5 transition-all ${
+                            candidate_answer ? 'bg-white border-slate-200' : 'bg-slate-100/70 border-slate-200 opacity-70'
+                          }`}>
                             <span className="font-semibold text-slate-800 block">
                               3. {answer_key.scoring_metadata?.criteria?.[2]?.name || 'Propuesta de cierre / CTA'}
                             </span>
@@ -474,11 +486,14 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                                 <button
                                   key={val}
                                   type="button"
+                                  disabled={!candidate_answer}
                                   onClick={() => handleScoreChange(question.id, 'c3', val)}
-                                  className={`flex-1 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
-                                    rubricScores.c3 === val
-                                      ? 'bg-blue-600 text-white shadow-sm'
-                                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                  className={`flex-1 py-1 rounded text-xs font-bold transition-all ${
+                                    !candidate_answer 
+                                      ? 'cursor-not-allowed bg-slate-200 text-slate-400' 
+                                      : rubricScores.c3 === val
+                                        ? 'bg-blue-600 text-white shadow-sm cursor-pointer'
+                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer'
                                   }`}
                                 >
                                   {val}
@@ -488,7 +503,9 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                           </div>
 
                           {/* Criterio 4 */}
-                          <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5">
+                          <div className={`p-3 rounded-lg border space-y-1.5 transition-all ${
+                            candidate_answer ? 'bg-white border-slate-200' : 'bg-slate-100/70 border-slate-200 opacity-70'
+                          }`}>
                             <span className="font-semibold text-slate-800 block">
                               4. {answer_key.scoring_metadata?.criteria?.[3]?.name || 'Profesionalismo y ética'}
                             </span>
@@ -497,11 +514,14 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                                 <button
                                   key={val}
                                   type="button"
+                                  disabled={!candidate_answer}
                                   onClick={() => handleScoreChange(question.id, 'c4', val)}
-                                  className={`flex-1 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
-                                    rubricScores.c4 === val
-                                      ? 'bg-blue-600 text-white shadow-sm'
-                                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                  className={`flex-1 py-1 rounded text-xs font-bold transition-all ${
+                                    !candidate_answer 
+                                      ? 'cursor-not-allowed bg-slate-200 text-slate-400' 
+                                      : rubricScores.c4 === val
+                                        ? 'bg-blue-600 text-white shadow-sm cursor-pointer'
+                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer'
                                   }`}
                                 >
                                   {val}
@@ -515,14 +535,19 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                         <div>
                           <input
                             type="text"
+                            disabled={!candidate_answer}
                             value={rubricScores.observation}
                             onChange={(e) => handleObservationChange(question.id, e.target.value)}
-                            placeholder="Observación u opinión técnica del evaluador..."
-                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder={candidate_answer ? "Observación u opinión técnica del evaluador..." : "En espera de que la candidata envíe su respuesta para calificar..."}
+                            className={`w-full px-3 py-2 border rounded-lg text-xs focus:outline-none transition-all ${
+                              candidate_answer 
+                                ? 'bg-white border-slate-300 text-slate-800 focus:ring-2 focus:ring-blue-600' 
+                                : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                            }`}
                           />
                         </div>
 
-                        {candidate_answer && (
+                        {candidate_answer ? (
                           <div className="flex justify-end pt-1">
                             <button
                               type="button"
@@ -533,6 +558,13 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                               <Save className="w-3.5 h-3.5" />
                               <span>{rubricScores.submitting ? 'Guardando...' : `Guardar Calificación como ${currentReviewer.name}`}</span>
                             </button>
+                          </div>
+                        ) : (
+                          <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-lg text-amber-900 text-xs flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                            <span>
+                              <strong>Pregunta pendiente de respuesta:</strong> {candidate.full_name} aún no ha enviado su redacción. El botón para guardar la calificación se habilitará automáticamente en cuanto ella rinda y envíe este ejercicio.
+                            </span>
                           </div>
                         )}
                       </div>
