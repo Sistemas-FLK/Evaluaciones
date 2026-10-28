@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { 
   Candidate, 
   Invitation, 
@@ -21,13 +24,10 @@ import {
 import { getSupabase } from '../config/supabase.js';
 
 async function syncSupabase(promise: PromiseLike<any>, opName: string) {
-  try {
-    const res = await promise;
-    if (res?.error) {
-      console.warn(`[Supabase ${opName}]`, res.error.message);
-    }
-  } catch (err: any) {
-    console.warn(`[Supabase ${opName}]`, err?.message || err);
+  const result = await promise;
+  if (result?.error) {
+    console.error(`[Supabase ${opName}]`, result.error.message);
+    throw new Error('No se pudo guardar en la base de datos. Inténtalo nuevamente.');
   }
 }
 
@@ -43,9 +43,39 @@ class MemoryDatabase {
   finalReviews: Map<string, FinalReview> = new Map(); // key: assessmentId
   auditLogs: AuditLog[] = [];
 
+  readonly ready: Promise<void>;
+  initializationError: string | null = null;
+  private readonly storagePath = process.env.LOCAL_DATA_FILE || fileURLToPath(new URL('../../data/database.json', import.meta.url));
+
   constructor() {
     this.seed();
-    this.hydrateFromSupabase();
+    if (!getSupabase()) this.restoreLocal();
+    this.ready = this.hydrateFromSupabase().catch(error => {
+      this.initializationError = error?.message || 'Error al cargar la base de datos';
+    });
+  }
+
+  private restoreLocal() {
+    if (!fs.existsSync(this.storagePath)) return;
+    // Un archivo inválido debe detener el arranque, nunca reemplazarse con semillas.
+    const data = JSON.parse(fs.readFileSync(this.storagePath, 'utf8'));
+    if (data.version !== 1) throw new Error('Formato de almacén local no compatible');
+    for (const key of ['candidates', 'invitations', 'assessments', 'answers', 'reviewerScores', 'finalReviews'] as const) {
+      if (!Array.isArray(data[key])) throw new Error(`Almacén local inválido: ${key}`);
+      (this[key] as Map<any, any>) = new Map(data[key]);
+    }
+    this.auditLogs = data.auditLogs || [];
+  }
+
+  persistLocal() {
+    if (getSupabase()) return;
+    const data: Record<string, unknown> = { version: 1, auditLogs: this.auditLogs };
+    for (const key of ['candidates', 'invitations', 'assessments', 'answers', 'reviewerScores', 'finalReviews'] as const) {
+      data[key] = Array.from((this[key] as Map<any, any>).entries());
+    }
+    fs.mkdirSync(path.dirname(this.storagePath), { recursive: true });
+    fs.writeFileSync(this.storagePath + '.tmp', JSON.stringify(data), 'utf8');
+    fs.renameSync(this.storagePath + '.tmp', this.storagePath);
   }
 
   seed() {
@@ -62,30 +92,47 @@ class MemoryDatabase {
    * Hidrata y sincroniza la memoria con PostgreSQL Supabase al iniciar
    */
   async hydrateFromSupabase() {
+    this.persistLocal();
     const supabase = getSupabase();
     if (!supabase) return;
 
     try {
       console.log('[Supabase] Hidratando datos desde PostgreSQL Supabase...');
-      const [candRes, invRes, assRes, ansRes, revRes] = await Promise.all([
+      const [candRes, invRes, assRes, ansRes, revRes, finalRes] = await Promise.all([
         supabase.from('candidates').select('*'),
         supabase.from('invitations').select('*'),
         supabase.from('assessments').select('*'),
         supabase.from('answers').select('*'),
-        supabase.from('reviewer_scores').select('*')
+        supabase.from('reviewer_scores').select('*'),
+        supabase.from('final_reviews').select('*')
       ]);
 
+      for (const result of [candRes, invRes, assRes, ansRes, revRes, finalRes]) {
+        if (result.error) throw new Error(result.error.message);
+      }
+      if (candRes.data?.length) {
+        this.candidates.clear();
+        this.invitations.clear();
+        this.assessments.clear();
+      }
+      this.answers.clear();
+      this.reviewerScores.clear();
+      this.finalReviews.clear();
+      finalRes.data?.forEach((r: any) => this.finalReviews.set(r.assessment_id, r));
       if (candRes.data && candRes.data.length > 0) {
         candRes.data.forEach((c: any) => this.candidates.set(c.id, c));
       } else if (candRes.data && candRes.data.length === 0) {
         console.log('[Supabase] Tablas vacías detectadas. Inicializando datos de candidatas en Supabase...');
         try {
-          await supabase.from('candidates').upsert(INITIAL_CANDIDATES);
-          await supabase.from('invitations').upsert(INITIAL_INVITATIONS);
-          await supabase.from('assessments').upsert(INITIAL_ASSESSMENTS);
+          const candidates = await supabase.from('candidates').upsert(INITIAL_CANDIDATES);
+          if (candidates.error) throw candidates.error;
+          const invitations = await supabase.from('invitations').upsert(INITIAL_INVITATIONS);
+          if (invitations.error) throw invitations.error;
+          const assessments = await supabase.from('assessments').upsert(INITIAL_ASSESSMENTS);
+          if (assessments.error) throw assessments.error;
           console.log('[Supabase] Inicialización completada: Esther y Geraldine listas en Supabase.');
         } catch (seedErr) {
-          console.warn('[Supabase Auto-seed Warning]', seedErr);
+          throw seedErr;
         }
       }
       if (invRes.data && invRes.data.length > 0) {
@@ -102,7 +149,8 @@ class MemoryDatabase {
       }
       console.log(`[Supabase] Conectado y sincronizado: ${candRes.data?.length || 0} candidatas, ${assRes.data?.length || 0} evaluaciones.`);
     } catch (err: any) {
-      console.warn('[Supabase Hydration Warning]', err?.message || err);
+      console.error('[Supabase Hydration Error]', err?.message || err);
+      throw err;
     }
   }
 
@@ -120,11 +168,10 @@ class MemoryDatabase {
     return Array.from(this.candidates.values()).find(c => c.email.toLowerCase() === email.toLowerCase());
   }
 
-  createCandidate(candidate: Candidate): Candidate {
-    this.candidates.set(candidate.id, candidate);
+  async createCandidate(candidate: Candidate): Promise<Candidate> {
     const supabase = getSupabase();
     if (supabase) {
-      syncSupabase(
+      await syncSupabase(
         supabase.from('candidates').upsert({
           id: candidate.id,
           full_name: candidate.full_name,
@@ -135,18 +182,19 @@ class MemoryDatabase {
         'createCandidate'
       );
     }
+    this.candidates.set(candidate.id, candidate);
+    this.persistLocal();
     return candidate;
   }
 
-  updateCandidate(id: string, updates: Partial<Candidate>): Candidate | undefined {
+  async updateCandidate(id: string, updates: Partial<Candidate>): Promise<Candidate | undefined> {
     const existing = this.candidates.get(id);
     if (!existing) return undefined;
     const updated = { ...existing, ...updates };
-    this.candidates.set(id, updated);
 
     const supabase = getSupabase();
     if (supabase) {
-      syncSupabase(
+      await syncSupabase(
         supabase.from('candidates').update({
           full_name: updated.full_name,
           email: updated.email,
@@ -156,6 +204,8 @@ class MemoryDatabase {
       );
     }
 
+    this.candidates.set(id, updated);
+    this.persistLocal();
     return updated;
   }
 
@@ -167,30 +217,32 @@ class MemoryDatabase {
     );
   }
 
-  createInvitation(invitation: Invitation): Invitation {
-    this.invitations.set(invitation.id, invitation);
+  async createInvitation(invitation: Invitation): Promise<Invitation> {
     const supabase = getSupabase();
     if (supabase) {
-      syncSupabase(
+      await syncSupabase(
         supabase.from('invitations').upsert(invitation),
         'createInvitation'
       );
     }
+    this.invitations.set(invitation.id, invitation);
+    this.persistLocal();
     return invitation;
   }
 
-  updateInvitation(id: string, updates: Partial<Invitation>): Invitation | undefined {
+  async updateInvitation(id: string, updates: Partial<Invitation>): Promise<Invitation | undefined> {
     const existing = this.invitations.get(id);
     if (!existing) return undefined;
     const updated = { ...existing, ...updates };
-    this.invitations.set(id, updated);
     const supabase = getSupabase();
     if (supabase) {
-      syncSupabase(
+      await syncSupabase(
         supabase.from('invitations').update(updates).eq('id', id),
         'updateInvitation'
       );
     }
+    this.invitations.set(id, updated);
+    this.persistLocal();
     return updated;
   }
 
@@ -207,32 +259,34 @@ class MemoryDatabase {
     return Array.from(this.assessments.values());
   }
 
-  createAssessment(assessment: Assessment): Assessment {
-    this.assessments.set(assessment.id, assessment);
+  async createAssessment(assessment: Assessment): Promise<Assessment> {
     const supabase = getSupabase();
     if (supabase) {
-      syncSupabase(
+      await syncSupabase(
         supabase.from('assessments').upsert(assessment),
         'createAssessment'
       );
     }
+    this.assessments.set(assessment.id, assessment);
+    this.persistLocal();
     return assessment;
   }
 
-  updateAssessment(id: string, updates: Partial<Assessment>): Assessment | undefined {
+  async updateAssessment(id: string, updates: Partial<Assessment>): Promise<Assessment | undefined> {
     const existing = this.assessments.get(id);
     if (!existing) return undefined;
     const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
-    this.assessments.set(id, updated);
 
     const supabase = getSupabase();
     if (supabase) {
-      syncSupabase(
+      await syncSupabase(
         supabase.from('assessments').update(updates).eq('id', id),
         'updateAssessment'
       );
     }
 
+    this.assessments.set(id, updated);
+    this.persistLocal();
     return updated;
   }
 
@@ -260,13 +314,12 @@ class MemoryDatabase {
     return this.answers.get(`${assessmentId}_${questionId}`);
   }
 
-  saveAnswer(answer: Answer): Answer {
+  async saveAnswer(answer: Answer): Promise<Answer> {
     const key = `${answer.assessment_id}_${answer.question_id}`;
-    this.answers.set(key, answer);
 
     const supabase = getSupabase();
     if (supabase) {
-      syncSupabase(
+      await syncSupabase(
         supabase.from('answers').upsert({
           id: answer.id,
           assessment_id: answer.assessment_id,
@@ -284,6 +337,8 @@ class MemoryDatabase {
       );
     }
 
+    this.answers.set(key, answer);
+    this.persistLocal();
     return answer;
   }
 
@@ -292,13 +347,12 @@ class MemoryDatabase {
     return Array.from(this.reviewerScores.values()).filter(r => r.answer_id === answerId);
   }
 
-  saveReviewerScore(score: ReviewerScore): ReviewerScore {
+  async saveReviewerScore(score: ReviewerScore): Promise<ReviewerScore> {
     const key = `${score.answer_id}_${score.reviewer_id}`;
-    this.reviewerScores.set(key, score);
 
     const supabase = getSupabase();
     if (supabase) {
-      syncSupabase(
+      await syncSupabase(
         supabase.from('reviewer_scores').upsert({
           id: score.id,
           answer_id: score.answer_id,
@@ -313,6 +367,8 @@ class MemoryDatabase {
       );
     }
 
+    this.reviewerScores.set(key, score);
+    this.persistLocal();
     return score;
   }
 
@@ -321,22 +377,23 @@ class MemoryDatabase {
     return this.finalReviews.get(assessmentId);
   }
 
-  saveFinalReview(review: FinalReview): FinalReview {
-    this.finalReviews.set(review.assessment_id, review);
+  async saveFinalReview(review: FinalReview): Promise<FinalReview> {
 
     const supabase = getSupabase();
     if (supabase) {
-      syncSupabase(
+      await syncSupabase(
         supabase.from('final_reviews').upsert(review),
         'saveFinalReview'
       );
     }
 
+    this.finalReviews.set(review.assessment_id, review);
+    this.persistLocal();
     return review;
   }
 
   // Auditoría
-  addAuditLog(actorId: string, action: string, entityId?: string, metadata?: any): AuditLog {
+  async addAuditLog(actorId: string, action: string, entityId?: string, metadata?: any): Promise<AuditLog> {
     const log: AuditLog = {
       id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
       actor_id: actorId,
@@ -345,16 +402,17 @@ class MemoryDatabase {
       metadata,
       created_at: new Date().toISOString()
     };
-    this.auditLogs.unshift(log);
 
     const supabase = getSupabase();
     if (supabase) {
-      syncSupabase(
+      await syncSupabase(
         supabase.from('audit_logs').insert(log),
         'addAuditLog'
       );
     }
 
+    this.auditLogs.unshift(log);
+    this.persistLocal();
     return log;
   }
 

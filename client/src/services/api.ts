@@ -4,6 +4,17 @@
 
 const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
+export async function exportCandidatesCSV(token: string) {
+  const res = await fetch(`${API_BASE}/admin/export/csv`, { headers: { Authorization: token } });
+  if (!res.ok) throw new Error('No se pudo exportar. Verifica tu sesión de evaluador.');
+  const url = URL.createObjectURL(await res.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'QUIMICORP_Evaluaciones.csv';
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export async function checkHealth() {
   const res = await fetch(`${API_BASE}/health`);
   return res.json();
@@ -62,11 +73,12 @@ export async function getCurrentQuestion(assessmentId: string) {
 }
 
 export async function saveDraftAnswer(assessmentId: string, questionId: number, draftText: string) {
-  await fetch(`${API_BASE}/assessment/${assessmentId}/draft`, {
+  const res = await fetch(`${API_BASE}/assessment/${assessmentId}/draft`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ question_id: questionId, draft_text: draftText }),
   });
+  if (!res.ok) throw new Error('No se pudo guardar el borrador en el servidor.');
 }
 
 export async function submitQuestionAnswer(

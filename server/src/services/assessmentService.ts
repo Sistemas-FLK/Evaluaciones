@@ -99,7 +99,7 @@ export class AssessmentService {
 
     // Si la candidata confirmó o completó su nombre o correo, actualizarlo
     if (candidateData?.full_name?.trim()) {
-      const updated = db.updateCandidate(candidate.id, {
+      const updated = await db.updateCandidate(candidate.id, {
         full_name: candidateData.full_name.trim(),
         email: candidateData.email?.trim() || candidate.email,
         phone: candidateData.phone?.trim() || candidate.phone
@@ -111,7 +111,7 @@ export class AssessmentService {
 
     let assessment = db.getAssessmentByCandidateId(candidate.id);
     if (!assessment) {
-      assessment = db.createAssessment({
+      assessment = await db.createAssessment({
         id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
         candidate_id: candidate.id,
         invitation_id: invitation.id,
@@ -157,7 +157,7 @@ export class AssessmentService {
     const now = new Date().toISOString();
 
     if (assessment.status === 'pending') {
-      db.updateAssessment(assessmentId, {
+      await db.updateAssessment(assessmentId, {
         status: 'in_progress',
         started_at: now,
         current_question_index: 1,
@@ -165,12 +165,12 @@ export class AssessmentService {
       });
 
       if (assessment.invitation_id) {
-        db.updateInvitation(assessment.invitation_id, {
+        await db.updateInvitation(assessment.invitation_id, {
           used_at: now
         });
       }
 
-      db.addAuditLog(assessment.candidate_id, 'START_ASSESSMENT', assessmentId, {
+      await db.addAuditLog(assessment.candidate_id, 'START_ASSESSMENT', assessmentId, {
         timestamp: now
       });
     }
@@ -209,7 +209,7 @@ export class AssessmentService {
       : now;
 
     if (!assessment.current_question_started_at) {
-      db.updateAssessment(assessmentId, {
+      await db.updateAssessment(assessmentId, {
         current_question_started_at: new Date(questionStartedAt).toISOString()
       });
     }
@@ -238,6 +238,7 @@ export class AssessmentService {
         time_limit_seconds: question.time_limit_seconds,
         max_points: question.max_points
       },
+      question_started_at: new Date(questionStartedAt).toISOString(),
       time_remaining_seconds: timeRemainingSeconds,
       draft_answer: existingAnswer?.draft_answer || ''
     };
@@ -248,7 +249,9 @@ export class AssessmentService {
    */
   async saveDraft(assessmentId: string, questionId: number, draftText: string) {
     const assessment = db.getAssessmentById(assessmentId);
-    if (!assessment || assessment.status !== 'in_progress') return;
+    if (!assessment || assessment.status !== 'in_progress' || assessment.current_question_index !== questionId) {
+      throw new Error('La pregunta ya no admite borradores.');
+    }
 
     let answer = db.getAnswer(assessmentId, questionId);
     if (!answer) {
@@ -263,10 +266,10 @@ export class AssessmentService {
         objective_points: 0
       };
     } else {
-      answer.draft_answer = draftText;
+      answer = { ...answer, draft_answer: draftText };
     }
 
-    db.saveAnswer(answer);
+    await db.saveAnswer(answer);
   }
 
   /**
@@ -328,7 +331,7 @@ export class AssessmentService {
     }
 
     // Persistir respuesta
-    const answerId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+    const answerId = db.getAnswer(assessmentId, questionId)?.id || crypto.randomUUID();
     const answer: Answer = {
       id: answerId,
       assessment_id: assessmentId,
@@ -342,7 +345,7 @@ export class AssessmentService {
       objective_points: objectivePoints
     };
 
-    db.saveAnswer(answer);
+    await db.saveAnswer(answer);
 
     // Actualizar puntajes acumulados en evaluación
     const newObjectiveScore = Number((assessment.objective_score + objectivePoints).toFixed(2));
@@ -350,7 +353,7 @@ export class AssessmentService {
     const isFinished = nextQuestionIndex > 10;
 
     if (isFinished) {
-      db.updateAssessment(assessmentId, {
+      await db.updateAssessment(assessmentId, {
         status: 'submitted',
         completed_at: new Date().toISOString(),
         objective_score: newObjectiveScore,
@@ -358,7 +361,7 @@ export class AssessmentService {
         current_question_index: 10
       });
 
-      db.addAuditLog(assessment.candidate_id, 'COMPLETE_ASSESSMENT', assessmentId, {
+      await db.addAuditLog(assessment.candidate_id, 'COMPLETE_ASSESSMENT', assessmentId, {
         objective_score: newObjectiveScore,
         timestamp: new Date().toISOString()
       });
@@ -370,7 +373,7 @@ export class AssessmentService {
     } else {
       // Avanzar a la siguiente pregunta
       const nextStartedAt = new Date().toISOString();
-      db.updateAssessment(assessmentId, {
+      await db.updateAssessment(assessmentId, {
         current_question_index: nextQuestionIndex,
         current_question_started_at: nextStartedAt,
         objective_score: newObjectiveScore,
@@ -391,7 +394,7 @@ export class AssessmentService {
     }
 
     const now = new Date().toISOString();
-    db.updateAssessment(assessmentId, {
+    await db.updateAssessment(assessmentId, {
       status: 'pending',
       started_at: undefined,
       completed_at: undefined,
@@ -402,7 +405,7 @@ export class AssessmentService {
       total_score: 0
     });
 
-    db.addAuditLog(actorId, 'RESTART_ASSESSMENT', assessmentId, {
+    await db.addAuditLog(actorId, 'RESTART_ASSESSMENT', assessmentId, {
       reason,
       timestamp: now
     });

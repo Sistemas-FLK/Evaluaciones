@@ -1,4 +1,15 @@
 # QUIMICORP TALENT — Plataforma de Evaluación Comercial
+
+## Despliegue y persistencia (28/10/2026)
+
+- Vercel publica el frontend. Las reglas de `vercel.json` envían `/api/*` a `https://evaluaciones-svpo.onrender.com/api/*` antes del fallback de React. Si se usa `VITE_API_URL`, configurar `/api` y reconstruir.
+- Render: directorio raíz del repositorio, build `npm run build`, start `npm start`. Configurar `SUPABASE_URL` con la URL base, sin `/rest/v1`, y `SUPABASE_SERVICE_ROLE_KEY` solo en el backend. Usar una clave privada para `ADMIN_SECRET_KEY`.
+- `/api/health` verifica la carga de la base de datos. Si falla, responde 503 y bloquea las operaciones para evitar mostrar o guardar datos iniciales como si fueran actuales.
+- El servidor espera las escrituras de Supabase antes de confirmar el guardado. La caché corresponde a un solo proceso: utilizar una sola instancia de Render. Varias réplicas necesitan un repositorio transaccional compartido.
+- Sin Supabase, se conserva el estado en `server/data/database.json`, excluido de Git. `LOCAL_DATA_FILE` permite configurar un disco persistente. El disco efímero de un alojamiento no sustituye una base de datos.
+- Los borradores inmediatos y las opciones marcadas se recuperan en el mismo navegador y pregunta; el reloj sigue controlado por el servidor.
+- Verificación: `npm --prefix server test` y `npm --prefix client run build`.
+
 ### QUIMICORP PERÚ S.A.C. — Ejecutiva de Ventas, Captación Digital y E-commerce
 
 Plataforma full-stack moderna, profesional, responsive y funcional para evaluar competencias comerciales, negociación consultiva, razonamiento numérico, ética comercial y estrategias de captación digital.

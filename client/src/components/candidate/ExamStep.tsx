@@ -68,17 +68,29 @@ export const ExamStep: React.FC<ExamStepProps> = ({
     targetEndTimeRef.current = Date.now() + duration * 1000;
     questionStartTimeRef.current = Date.now();
 
-    setSelectedOption('');
-    selectedOptionRef.current = '';
+    let cached: any = null;
+    try { cached = JSON.parse(localStorage.getItem(`quimi_draft_${assessmentId}_${data.question.id}`) || 'null'); } catch {}
+    if (cached?.startedAt !== data.question_started_at) cached = null;
+    const option = cached?.selectedOption || '';
+    setSelectedOption(option);
+    selectedOptionRef.current = option;
 
-    const initialDraft = data.draft_answer || '';
+    const initialDraft = cached?.writtenAnswer ?? data.draft_answer ?? '';
     setWrittenAnswer(initialDraft);
     writtenAnswerRef.current = initialDraft;
 
     setDraftSaved(true);
     setShowEmptyWarning(false);
     setErrorMsg('');
-  }, []);
+  }, [assessmentId]);
+
+  const cacheDraft = (text: string, option: string) => {
+    try {
+      localStorage.setItem(`quimi_draft_${assessmentId}_${questionData.question.id}`, JSON.stringify({
+        writtenAnswer: text, selectedOption: option, startedAt: questionData.question_started_at
+      }));
+    } catch { setErrorMsg('No se pudo guardar la copia local. Evita recargar hasta guardar la respuesta.'); }
+  };
 
   // Cargar pregunta inicial
   const loadInitialQuestion = async () => {
@@ -126,6 +138,7 @@ export const ExamStep: React.FC<ExamStepProps> = ({
     submittingRef.current = true;
     setSubmitting(true);
     setShowEmptyWarning(false);
+    if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
 
     try {
       const clientElapsed = Math.max(1, Math.floor((Date.now() - questionStartTimeRef.current) / 1000));
@@ -135,6 +148,7 @@ export const ExamStep: React.FC<ExamStepProps> = ({
         client_elapsed_seconds: clientElapsed
       });
 
+      try { localStorage.removeItem(`quimi_draft_${assessmentId}_${questionData.question.id}`); } catch {}
       if (res.finished) {
         onFinished();
         return;
@@ -180,6 +194,7 @@ export const ExamStep: React.FC<ExamStepProps> = ({
     setWrittenAnswer(val);
     writtenAnswerRef.current = val;
     setDraftSaved(false);
+    cacheDraft(val, selectedOptionRef.current);
 
     if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
     draftDebounceRef.current = setTimeout(async () => {
@@ -188,7 +203,7 @@ export const ExamStep: React.FC<ExamStepProps> = ({
           await saveDraftAnswer(assessmentId, questionData.question.id, val);
           setDraftSaved(true);
         } catch (e) {
-          console.warn('Error al auto-guardar borrador', e);
+          setErrorMsg('No se pudo sincronizar el borrador. Se conserva una copia en este navegador.');
         }
       }
     }, 800);
@@ -373,11 +388,14 @@ export const ExamStep: React.FC<ExamStepProps> = ({
                   >
                     <input
                       type="radio"
+                      disabled={submitting}
                       name="quiz-option"
                       value={opt.id}
                       checked={isSelected}
                       onChange={() => {
                         setSelectedOption(opt.id);
+                        selectedOptionRef.current = opt.id;
+                        cacheDraft(writtenAnswerRef.current, opt.id);
                         setShowEmptyWarning(false);
                       }}
                       className="mt-1 w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
@@ -412,6 +430,7 @@ export const ExamStep: React.FC<ExamStepProps> = ({
                 </span>
               </div>
               <textarea
+                disabled={submitting}
                 rows={6}
                 value={writtenAnswer}
                 onChange={(e) => {

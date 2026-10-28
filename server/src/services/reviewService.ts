@@ -158,7 +158,7 @@ export class ReviewService {
       reviewed_at: new Date().toISOString()
     };
 
-    db.saveReviewerScore(scoreRecord);
+    await db.saveReviewerScore(scoreRecord);
 
     // Buscar a qué evaluación pertenece esta respuesta
     const allAnswers = Array.from(db.answers.values());
@@ -188,12 +188,12 @@ export class ReviewService {
     totalManualScore = Number(totalManualScore.toFixed(2));
     const newTotal = Number((assessment.objective_score + totalManualScore).toFixed(2));
 
-    db.updateAssessment(assessment.id, {
+    await db.updateAssessment(assessment.id, {
       manual_score: totalManualScore,
       total_score: newTotal
     });
 
-    db.addAuditLog(reviewerId, 'MANUAL_SCORE_SUBMITTED', answerId, {
+    await db.addAuditLog(reviewerId, 'MANUAL_SCORE_SUBMITTED', answerId, {
       reviewerName,
       points: totalPoints,
       assessmentId: assessment.id
@@ -276,12 +276,12 @@ export class ReviewService {
       approved_at: new Date().toISOString()
     };
 
-    db.saveFinalReview(finalReview);
-    db.updateAssessment(assessmentId, {
+    await db.saveFinalReview(finalReview);
+    await db.updateAssessment(assessmentId, {
       status: 'graded'
     });
 
-    db.addAuditLog(payload.approved_by, 'FINALIZE_ASSESSMENT', assessmentId, {
+    await db.addAuditLog(payload.approved_by, 'FINALIZE_ASSESSMENT', assessmentId, {
       recommendation: payload.recommendation,
       total_score: assessment.total_score
     });
@@ -303,7 +303,7 @@ export class ReviewService {
     }
 
     const candidateId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
-    const candidate = db.createCandidate({
+    const candidate = await db.createCandidate({
       id: candidateId,
       full_name: fullName.trim(),
       email: email.trim().toLowerCase(),
@@ -317,7 +317,7 @@ export class ReviewService {
     const accessCode = `${cleanFirstName}-QUIMI-${codeSuffix}`;
 
     const invitationId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
-    const invitation = db.createInvitation({
+    const invitation = await db.createInvitation({
       id: invitationId,
       candidate_id: candidate.id,
       access_code: accessCode,
@@ -326,7 +326,7 @@ export class ReviewService {
     });
 
     const assessmentId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
-    const assessment = db.createAssessment({
+    const assessment = await db.createAssessment({
       id: assessmentId,
       candidate_id: candidate.id,
       invitation_id: invitation.id,
@@ -339,7 +339,7 @@ export class ReviewService {
       updated_at: new Date().toISOString()
     });
 
-    db.addAuditLog('admin', 'REGISTER_CANDIDATE', candidate.id, {
+    await db.addAuditLog('admin', 'REGISTER_CANDIDATE', candidate.id, {
       access_code: accessCode
     });
 

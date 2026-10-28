@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseUrl = (process.env.SUPABASE_URL || '').trim().replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
 let clientInstance: SupabaseClient | null = null;
@@ -27,7 +27,7 @@ if (supabaseUrl && supabaseKey) {
     });
     connectionStatus = {
       isConfigured: true,
-      message: 'Conectado exitosamente a Supabase PostgreSQL',
+      message: 'Credenciales configuradas; conexión pendiente de verificar',
       url: supabaseUrl,
     };
     console.log(`[Supabase] Conectado a: ${supabaseUrl}`);

@@ -15,14 +15,14 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
   authToken,
   onCandidateCreated
 }) => {
-  if (!isOpen) return null;
-
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [createdData, setCreatedData] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
+
+  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

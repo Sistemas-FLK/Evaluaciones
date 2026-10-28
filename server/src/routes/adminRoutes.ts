@@ -9,7 +9,7 @@ const verifyAdmin = (req: Request, res: Response, next: Function) => {
   const authHeader = req.headers.authorization;
   const adminSecret = process.env.ADMIN_SECRET_KEY || 'admin123';
 
-  if (!authHeader || !authHeader.includes(adminSecret)) {
+  if (authHeader !== `Bearer ${adminSecret}`) {
     // Permitir continuar si no hay encabezado estricto pero registrar aviso
     // o verificar token simple:
     return res.status(401).json({ error: 'Acceso no autorizado al panel de evaluación.' });

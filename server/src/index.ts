@@ -1,3 +1,4 @@
+import { db } from './data/mockDatabase.js';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -41,12 +42,35 @@ if (fs.existsSync(clientDistPath)) {
 // Endpoint de Salud y Estado de Conexión Supabase (para Render y monitores)
 app.get('/api/health', (_req: Request, res: Response) => {
   const supabaseStatus = getSupabaseStatus();
-  res.json({
-    status: 'online',
+  res.status(db.initializationError ? 503 : 200).json({
+    status: db.initializationError ? 'database_unavailable' : 'online',
     platform: 'QUIMICORP TALENT — Evaluación Comercial',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
-    supabase: supabaseStatus
+    supabase: { ...supabaseStatus,
+      isConfigured: supabaseStatus.isConfigured && !db.initializationError,
+      message: db.initializationError ? 'No se pudo conectar a la base de datos. Revisa las variables del servidor.' :
+        supabaseStatus.isConfigured ? 'Conexión verificada con Supabase' : supabaseStatus.message
+    },
+    revision: process.env.RENDER_GIT_COMMIT || 'local'
+  });
+});
+
+// Serialize API requests within this server so concurrent submissions cannot advance twice.
+let requestQueue = Promise.resolve();
+app.use('/api', (_req, res, next) => {
+  if (db.initializationError) {
+    res.status(503).json({ error: 'La base de datos no está disponible. No se registrarán cambios hasta recuperar la conexión.' });
+    return;
+  }
+  const previous = requestQueue;
+  let release!: () => void;
+  requestQueue = new Promise<void>(resolve => { release = resolve; });
+  void previous.then(() => {
+    if (res.destroyed) { release(); return; }
+    res.once('finish', release);
+    res.once('close', release);
+    next();
   });
 });
 
@@ -90,10 +114,11 @@ app.use((err: any, _req: Request, res: Response, _next: any) => {
   });
 });
 
+await db.ready;
+
 app.listen(PORT, () => {
   console.log(`====================================================`);
   console.log(`🚀 QUIMICORP TALENT iniciada en http://localhost:${PORT}`);
-  console.log(`📊 Panel Admin Secret: ${process.env.ADMIN_SECRET_KEY || 'admin123'}`);
   console.log(`📁 Frontend estático servido desde: ${clientDistPath}`);
   console.log(`====================================================`);
 });

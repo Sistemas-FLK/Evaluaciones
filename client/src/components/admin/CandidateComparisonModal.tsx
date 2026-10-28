@@ -32,8 +32,6 @@ export const CandidateComparisonModal: React.FC<CandidateComparisonModalProps> =
   reviewerName,
   onSaved
 }) => {
-  if (!isOpen) return null;
-
   // Seleccionar a Esther y Geraldine por defecto si existen
   const [selectedCandidateId, setSelectedCandidateId] = useState<string>(
     candidates[0]?.candidate_id || ''
@@ -42,6 +40,8 @@ export const CandidateComparisonModal: React.FC<CandidateComparisonModalProps> =
   const [justification, setJustification] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+
+  if (!isOpen) return null;
 
   const currentCandidate = candidates.find(c => c.candidate_id === selectedCandidateId) || candidates[0];
 

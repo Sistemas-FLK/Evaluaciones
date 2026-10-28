@@ -34,10 +34,6 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
   currentReviewer,
   onReload
 }) => {
-  if (!isOpen || !data) return null;
-
-  const { candidate, assessment, questions_detail, final_review } = data;
-
   // Estado para formularios de calificación manual
   const [scoringState, setScoringState] = useState<Record<number, {
     c1: number;
@@ -51,9 +47,17 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
   const [resetting, setResetting] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  if (!isOpen || !data) return null;
+  const { candidate, assessment, questions_detail, final_review } = data;
+
   // Inicializar o leer valores de rúbrica
   const getRubricScores = (qId: number) => {
-    return scoringState[qId] || { c1: 3, c2: 3, c3: 3, c4: 3, observation: '', submitting: false };
+    const saved = questions_detail.find(q => q.question.id === qId)?.reviews.find(r => r.reviewer_id === currentReviewer.id);
+    return scoringState[qId] || {
+      c1: saved?.criterion_scores.c1 ?? 3, c2: saved?.criterion_scores.c2 ?? 3,
+      c3: saved?.criterion_scores.c3 ?? 3, c4: saved?.criterion_scores.c4 ?? 3,
+      observation: saved?.observation || '', submitting: false
+    };
   };
 
   const handleScoreChange = (qId: number, field: 'c1' | 'c2' | 'c3' | 'c4', val: number) => {

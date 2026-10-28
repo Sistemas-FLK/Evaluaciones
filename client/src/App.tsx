@@ -11,7 +11,10 @@ import { checkHealth, startAssessment } from './services/api';
 import { ShieldCheck } from 'lucide-react';
 
 export function App() {
-  const [currentRole, setCurrentRole] = useState<'candidate' | 'admin'>('candidate');
+  const [currentRole, setCurrentRole] = useState<'candidate' | 'admin'>(() =>
+    localStorage.getItem('quimi_admin_token') &&
+    (window.location.hash === '#admin' || window.location.hash === '#evaluador' || sessionStorage.getItem('quimi_role') === 'admin')
+      ? 'admin' : 'candidate');
   
   // Flujo de la Candidata: 'welcome' | 'instructions' | 'exam' | 'completion'
   const [candidateStep, setCandidateStep] = useState<'welcome' | 'instructions' | 'exam' | 'completion'>(() => {
@@ -49,9 +52,12 @@ export function App() {
   const [adminToken, setAdminToken] = useState<string>(() => localStorage.getItem('quimi_admin_token') || '');
   const [adminReviewer, setAdminReviewer] = useState<{ id: string; name: string }>(() => {
     const saved = localStorage.getItem('quimi_admin_reviewer');
-    return saved ? JSON.parse(saved) : { id: 'maria_evaluadora', name: 'María' };
+    try { if (saved) return JSON.parse(saved); } catch {}
+    return { id: 'maria_evaluadora', name: 'María' };
   });
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
+
+  useEffect(() => { sessionStorage.setItem('quimi_role', currentRole); }, [currentRole]);
 
   // Supabase Status
   const [supabaseStatus, setSupabaseStatus] = useState<any>(null);
@@ -111,13 +117,13 @@ export function App() {
 
   // Guardar y sincronizar sesión activa de la candidata para tolerar F5 y reconexiones
   useEffect(() => {
-    if (currentAssessment && (candidateStep === 'exam' || candidateStep === 'instructions')) {
+    if (currentAssessment && candidateStep !== 'welcome') {
       localStorage.setItem('quimi_candidate_session', JSON.stringify({
         candidate: currentCandidate,
         assessment: currentAssessment,
         step: candidateStep
       }));
-    } else if (candidateStep === 'completion') {
+    } else if (candidateStep === 'welcome') {
       localStorage.removeItem('quimi_candidate_session');
     }
   }, [candidateStep, currentCandidate, currentAssessment]);
@@ -127,6 +133,7 @@ export function App() {
       setIsAdminLoginOpen(true);
       return;
     }
+    window.history.replaceState(null, '', role === 'admin' ? '#admin' : '#candidate');
     setCurrentRole(role);
   };
 
@@ -143,6 +150,7 @@ export function App() {
     setAdminToken('');
     localStorage.removeItem('quimi_admin_token');
     localStorage.removeItem('quimi_admin_reviewer');
+    window.history.replaceState(null, '', '#candidate');
     setCurrentRole('candidate');
   };
 

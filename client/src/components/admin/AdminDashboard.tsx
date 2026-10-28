@@ -16,7 +16,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { OverviewData, CandidateOverviewRow } from '../../types';
-import { getAdminOverview, getCandidateDetail } from '../../services/api';
+import { getAdminOverview, getCandidateDetail, exportCandidatesCSV } from '../../services/api';
 import { CandidateDetailModal } from './CandidateDetailModal';
 import { CandidateComparisonModal } from './CandidateComparisonModal';
 import { NewCandidateModal } from './NewCandidateModal';
@@ -83,8 +83,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleExportCSV = () => {
-    window.open('/api/admin/export/csv', '_blank');
+  const handleExportCSV = async () => {
+    try { await exportCandidatesCSV(authToken); }
+    catch (err: any) { setErrorMsg(err.message || 'No se pudo exportar el archivo.'); }
   };
 
   // Filtrar candidatas
@@ -376,6 +377,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* Modales */}
       <CandidateDetailModal
+        key={`${selectedCandidateDetail?.candidate.id || ''}_${currentReviewer.id}_${isDetailOpen}`}
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
         data={selectedCandidateDetail}
@@ -399,6 +401,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       />
 
       <NewCandidateModal
+        key={String(isNewCandidateOpen)}
         isOpen={isNewCandidateOpen}
         onClose={() => setIsNewCandidateOpen(false)}
         authToken={authToken}

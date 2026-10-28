@@ -24,3 +24,6 @@ yarn-error.log*
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Almacén local persistente (datos privados)
+server/data/
