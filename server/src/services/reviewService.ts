@@ -103,7 +103,7 @@ export class ReviewService {
       const q = snapshot?.question || currentQuestion;
       const answer = answers.find(a => a.question_id === q.id);
       const answerKey = snapshot?.answer_key || db.getAnswerKey(q.id);
-      const reviewerScores = answer ? db.getReviewerScoresByAnswer(answer.id) : [];
+      const reviewerScores = answer ? db.getEffectiveReviewerScores(answer.id) : [];
 
       return {
         question: {
@@ -134,6 +134,8 @@ export class ReviewService {
           timed_out: answer.timed_out,
           objective_points: answer.objective_points
         } : null,
+        supplementary_answers: db.getSupplementaryAnswers(assessment.id, q.id),
+        original_reviews: answer ? db.getReviewerScoresByAnswer(answer.id).filter(score => !score.reviewer_id.startsWith('chat:')) : [],
         reviews: reviewerScores
       };
     });
@@ -165,6 +167,16 @@ export class ReviewService {
       const target = db.getAssessmentById(recordedAnswer.assessment_id);
       if (target) db.assertCandidateAvailable(target.candidate_id);
     }
+    if (!recordedAnswer) throw new Error('Respuesta no encontrada.');
+    const targetAssessment = db.getAssessmentById(recordedAnswer.assessment_id);
+    if (!targetAssessment || !['submitted','graded'].includes(targetAssessment.status)) throw new Error('La evaluación aún no fue entregada.');
+    const criteria = db.getAnswerKey(recordedAnswer.question_id)?.scoring_metadata.criteria || [];
+    if (criteria.length !== 4 || Object.keys(criterionScores).length !== 4 || criteria.some(c => !Number.isInteger(criterionScores[c.id]))) {
+      throw new Error('Deben calificarse los cuatro criterios de la rúbrica con puntos enteros.');
+    }
+    if (!reviewerId || reviewerId.length > 50 || reviewerId.startsWith('chat:')) throw new Error('Identificador de evaluador no válido.');
+    const supplement = db.getSupplementaryAnswers(recordedAnswer.assessment_id, recordedAnswer.question_id)[0];
+    const scopedReviewerId = supplement ? `chat:${supplement.id}:${reviewerId}` : reviewerId;
     // Validar que los criterios sean 0..3
     let totalPoints = 0;
     for (const [key, val] of Object.entries(criterionScores)) {
@@ -184,7 +196,7 @@ export class ReviewService {
     const scoreRecord: ReviewerScore = {
       id: scoreId,
       answer_id: answerId,
-      reviewer_id: reviewerId,
+      reviewer_id: scopedReviewerId,
       reviewer_name: reviewerName,
       criterion_scores: criterionScores,
       total_points: totalPoints,
@@ -210,7 +222,7 @@ export class ReviewService {
     for (const qId of openQuestionIds) {
       const ans = db.getAnswer(assessment.id, qId);
       if (ans) {
-        const revScores = db.getReviewerScoresByAnswer(ans.id);
+        const revScores = db.getEffectiveReviewerScores(ans.id);
         if (revScores.length > 0) {
           // Promedio de las evaluaciones si hay más de una, o la única disponible
           const sum = revScores.reduce((acc, r) => acc + r.total_points, 0);
@@ -230,7 +242,8 @@ export class ReviewService {
     await db.addAuditLog(reviewerId, 'MANUAL_SCORE_SUBMITTED', answerId, {
       reviewerName,
       points: totalPoints,
-      assessmentId: assessment.id
+      assessmentId: assessment.id,
+      supplementary_answer_id: supplement?.id || null
     });
 
     return scoreRecord;
@@ -282,7 +295,7 @@ export class ReviewService {
       if (q.question_type === 'multiple_choice') {
         pts = ans?.objective_points || 0;
       } else if (ans) {
-        const revs = db.getReviewerScoresByAnswer(ans.id);
+        const revs = db.getEffectiveReviewerScores(ans.id);
         if (revs.length > 0) {
           pts = revs.reduce((sum, r) => sum + r.total_points, 0) / revs.length;
         }

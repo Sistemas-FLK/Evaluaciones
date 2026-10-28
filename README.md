@@ -122,3 +122,10 @@ El panel permite crear, consultar, editar nombre/correo/teléfono y eliminar can
 No se presentó aplica a evaluaciones pendientes; No completó a evaluaciones iniciadas. Ambas marcas requieren motivo, registran evaluador y fecha y bloquean validación, inicio, lectura de preguntas y envío desde sesiones abiertas. Restablecer acceso conserva respuestas y reloj original. Las pruebas entregadas e históricas no admiten marcas de inasistencia.
 
 Los estados administrativos se guardan como eventos CANDIDATE_LIFECYCLE en audit_logs, con revisión monotónica por candidata y estado completo. Se reconstruyen al arrancar leyendo todas las páginas; no requieren ampliar las restricciones SQL de assessments.status. El listado, los contadores y el CSV aplican estos estados. El sistema está configurado para una sola instancia del backend.
+
+
+## Respuestas complementarias por chat
+
+El endpoint administrativo autenticado POST /api/admin/candidate/:id/supplementary-answers registra texto y evaluación por rúbrica en pruebas entregadas pendientes de dictamen. Conserva las respuestas originales y sus tiempos. Las complementarias quedan identificadas como recibidas por chat fuera del tiempo; la fecha mostrada es la de registro, no una hora de envío inventada.
+
+Los textos se conservan como eventos SUPPLEMENTARY_ANSWER en audit_logs. Las rúbricas de cada versión usan un identificador de evaluador por fuente. La nota manual usa la versión complementaria vigente en los ejercicios que la tienen, sin promediarla con notas de versiones originales. La ficha y el reporte muestran ambas fuentes. Las calificaciones de versiones anteriores permanecen conservadas. No se emite una recomendación final de selección al registrar complementarias.

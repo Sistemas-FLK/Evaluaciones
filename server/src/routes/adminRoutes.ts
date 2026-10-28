@@ -1,3 +1,4 @@
+import { saveSupplementaryAnswers } from '../services/supplementaryAnswerService.js';
 import { candidateManagementService } from '../services/candidateManagementService.js';
 import { importHistoricalEvaluation } from '../services/historicalImport.js';
 import { Router, Request, Response } from 'express';
@@ -115,6 +116,13 @@ router.post('/historical-import', verifyAdmin, async (req: Request, res: Respons
   } catch (error: any) {
     res.status(400).json({ error: error.message || 'No se pudo importar el informe.' });
   }
+});
+
+router.post('/candidate/:id/supplementary-answers', verifyAdmin, async (req: Request, res: Response) => {
+  try {
+    const detail = await saveSupplementaryAnswers(String(req.params.id), req.body);
+    res.json({ success: true, detail });
+  } catch (error: any) { res.status(400).json({ error: error.message }); }
 });
 
 // Registrar nueva candidata

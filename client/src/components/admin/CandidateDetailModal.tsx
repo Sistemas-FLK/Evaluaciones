@@ -343,7 +343,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                   {!isMC && (
                     <div className="space-y-4 pt-1">
                       <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/40">
-                        <span className="text-xs font-bold text-blue-900 uppercase">Respuesta Redactada por la Candidata:</span>
+                        <span className="text-xs font-bold text-blue-900 uppercase">Respuesta original registrada en el examen:</span>
                         <p className="text-sm text-slate-800 mt-2 leading-relaxed whitespace-pre-line bg-white p-3 rounded-lg border border-blue-100 shadow-inner">
                           {candidate_answer?.written_answer ? (
                             candidate_answer.written_answer
@@ -355,6 +355,20 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                         </p>
                       </div>
 
+                      {item.supplementary_answers?.map((supplement, index) => (
+                        <div key={supplement.id} className="p-4 rounded-xl border border-amber-300 bg-amber-50 text-sm">
+                          <p className="font-bold text-amber-950">{index === 0 ? 'Respuesta complementaria vigente' : 'Versión complementaria anterior'} — recibida por chat fuera del tiempo</p>
+                          <p className="text-slate-800 mt-2 whitespace-pre-line">{supplement.text}</p>
+                          <p className="text-xs text-slate-600 mt-2">Registrada el {new Date(supplement.recorded_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })} por {supplement.recorded_by}. Se conserva la respuesta original.</p>
+                          {index === 0 && <p className="text-xs font-semibold text-amber-950 mt-1">La rúbrica y el puntaje manual de este ejercicio corresponden a esta versión complementaria.</p>}
+                        </div>
+                      ))}
+                      {!!item.supplementary_answers?.length && !!item.original_reviews?.length && (
+                        <details className="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                          <summary>Calificaciones anteriores de la respuesta original</summary>
+                          {item.original_reviews?.map(review => <p key={review.id}>{review.reviewer_name}: {review.total_points}/12. {review.observation}</p>)}
+                        </details>
+                      )}
                       {/* Guía Oficial del Evaluador y Respuesta Modelo */}
                       {answer_key.benchmark_guide && (
                         <details className="bg-amber-50/80 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 group">

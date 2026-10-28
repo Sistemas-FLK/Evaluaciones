@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { 
+  SupplementaryAnswer,
   CandidateAdministrativeState,
   Candidate, 
   Invitation, 
@@ -163,6 +164,27 @@ class MemoryDatabase {
       console.error('[Supabase Hydration Error]', err?.message || err);
       throw err;
     }
+  }
+
+  getSupplementaryAnswers(assessmentId: string, questionId: number): SupplementaryAnswer[] {
+    return this.auditLogs.filter(log => log.action === 'SUPPLEMENTARY_ANSWER' &&
+      log.entity_id === assessmentId && log.metadata?.question_id === questionId)
+      .sort((a,b) => (b.metadata?.revision || 0) - (a.metadata?.revision || 0))
+      .map(log => ({
+        id: log.id, assessment_id: assessmentId, answer_id: log.metadata.answer_id,
+        question_id: questionId, text: log.metadata.text, source: 'chat', outside_time: true,
+        recorded_at: log.created_at, recorded_by: log.actor_id
+      }));
+  }
+
+  getEffectiveReviewerScores(answerId: string): ReviewerScore[] {
+    const answer = Array.from(this.answers.values()).find(a => a.id === answerId);
+    if (!answer) return [];
+    const supplement = this.getSupplementaryAnswers(answer.assessment_id, answer.question_id)[0];
+    const prefix = supplement ? `chat:${supplement.id}:` : '';
+    return this.getReviewerScoresByAnswer(answerId)
+      .filter(score => prefix ? score.reviewer_id.startsWith(prefix) : !score.reviewer_id.startsWith('chat:'))
+      .map(score => prefix ? { ...score, reviewer_id: score.reviewer_id.slice(prefix.length) } : score);
   }
 
   getCandidateAdministrativeState(candidateId: string): CandidateAdministrativeState {

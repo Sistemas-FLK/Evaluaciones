@@ -179,3 +179,15 @@ export interface CandidateAdministrativeState {
   participation_changed_at?: string;
   participation_changed_by?: string;
 }
+
+export interface SupplementaryAnswer {
+  id: string;
+  assessment_id: string;
+  answer_id: string;
+  question_id: number;
+  text: string;
+  source: 'chat';
+  outside_time: true;
+  recorded_at: string;
+  recorded_by: string;
+}

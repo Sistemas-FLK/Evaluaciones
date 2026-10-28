@@ -109,6 +109,8 @@ export interface QuestionDetailItem {
     timed_out: boolean;
     objective_points: number;
   } | null;
+  supplementary_answers?: Array<{ id: string; text: string; source: 'chat'; outside_time: true; recorded_at: string; recorded_by: string }>;
+  original_reviews?: ReviewerScore[];
   reviews: ReviewerScore[];
 }
 

@@ -158,9 +158,15 @@ export const PrintableReport: React.FC<PrintableReportProps> = ({
                         <td className="p-2.5">
                           <p className="font-bold text-slate-800">{question.category}</p>
                           <p className="text-[11px] text-slate-600 line-clamp-1">{question.statement}</p>
+                          {!!item.supplementary_answers?.length && (
+                            <div className="text-[10px] text-amber-950 mt-1 p-2 border border-amber-200 rounded">
+                              <strong>Complementaria por chat fuera del tiempo (versión calificada):</strong>
+                              <p className="whitespace-pre-line">{item.supplementary_answers[0].text}</p>
+                            </div>
+                          )}
                           {!isMC && candidate_answer?.written_answer && (
                             <p className="text-[10px] text-slate-500 italic mt-1 bg-slate-50 p-1.5 rounded">
-                              "{candidate_answer.written_answer.substring(0, 140)}..."
+                              Original del examen: "{candidate_answer.written_answer}"
                             </p>
                           )}
                         </td>
