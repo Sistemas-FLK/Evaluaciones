@@ -88,10 +88,13 @@ export const PrintableReport: React.FC<PrintableReportProps> = ({
             <div>
               <p className="text-slate-500 font-semibold uppercase">Posición Convocada:</p>
               <p className="text-sm font-bold text-slate-900 mt-0.5">Ejecutiva de Ventas, Captación Digital y E-commerce</p>
-              <p className="text-slate-600 mt-0.5">Tiempo total utilizado: {mins}m {secs}s (Máx 14m)</p>
+              <p className="text-slate-600 mt-0.5">Tiempo total utilizado: {final_review?.final_scores.historical_import ? 'No registrado en el informe histórico' : `${mins}m ${secs}s (Máx 14m)`}</p>
             </div>
           </div>
 
+          {final_review?.final_scores.historical_import && (
+            <p className="text-xs text-blue-900">Evaluación histórica del {final_review.final_scores.historical_import.evaluation_date}. Fuente: {final_review.final_scores.historical_import.source_file}. Preguntas y notas originales conservadas.</p>
+          )}
           {/* Cuadro de Puntuaciones Oficiales */}
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="p-3 border border-slate-200 rounded-xl bg-slate-50">
@@ -158,7 +161,7 @@ export const PrintableReport: React.FC<PrintableReportProps> = ({
                           {isMC ? 'Opción múltiple' : 'Abierta'}
                         </td>
                         <td className="p-2.5 font-mono text-slate-600 whitespace-nowrap">
-                          {candidate_answer?.elapsed_seconds || 0}s / {question.time_limit_seconds}s
+                          {final_review?.final_scores.historical_import ? 'No registrado' : `${candidate_answer?.elapsed_seconds || 0}s / ${question.time_limit_seconds}s`}
                         </td>
                         <td className="p-2.5 font-bold whitespace-nowrap text-right">
                           {pointsEarned.toFixed(1)} / {question.max_points}

@@ -1,3 +1,4 @@
+import { importHistoricalEvaluation } from '../services/historicalImport.js';
 import { Router, Request, Response } from 'express';
 import { reviewService } from '../services/reviewService.js';
 import { assessmentService } from '../services/assessmentService.js';
@@ -102,6 +103,16 @@ router.post('/finalize', verifyAdmin, async (req: Request, res: Response) => {
     res.json({ success: true, final_review: finalReview });
   } catch (error: any) {
     res.status(400).json({ error: error.message || 'Error al finalizar evaluación.' });
+  }
+});
+
+// Importar un informe histórico sin iniciar un examen cronometrado.
+router.post('/historical-import', verifyAdmin, async (req: Request, res: Response) => {
+  try {
+    const result = await importHistoricalEvaluation(req.body);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'No se pudo importar el informe.' });
   }
 });
 

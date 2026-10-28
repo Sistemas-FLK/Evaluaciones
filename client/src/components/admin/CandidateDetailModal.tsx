@@ -52,7 +52,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
 
   // Inicializar o leer valores de rúbrica
   const getRubricScores = (qId: number) => {
-    const saved = questions_detail.find(q => q.question.id === qId)?.reviews.find(r => r.reviewer_id === currentReviewer.id);
+    const saved = questions_detail.find(q => q.question.id === qId)?.reviews.find(r => r.reviewer_id === (final_review?.final_scores.historical_import ? 'historical_excel' : currentReviewer.id));
     return scoringState[qId] || {
       c1: saved?.criterion_scores.c1 ?? 3, c2: saved?.criterion_scores.c2 ?? 3,
       c3: saved?.criterion_scores.c3 ?? 3, c4: saved?.criterion_scores.c4 ?? 3,
@@ -156,7 +156,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handleResetAssessment}
-              disabled={resetting}
+              disabled={resetting || !!final_review?.final_scores.historical_import}
               title="Autorizar reinicio excepcional auditado"
               className="px-3 py-1.5 bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-700/60 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
             >
@@ -204,6 +204,12 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
             </div>
           </div>
 
+          {final_review?.final_scores.historical_import && (
+            <div className="mt-3 p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-xs">
+              Evaluación histórica del {final_review.final_scores.historical_import.evaluation_date} importada de {final_review.final_scores.historical_import.source_file}.
+              Se conservan las preguntas, respuestas y calificaciones originales. El archivo no registra tiempos por pregunta ni identifica al evaluador.
+            </div>
+          )}
           {assessment.status === 'pending' && (
             <div className="mt-3 p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5 text-amber-900 text-xs">
               <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -268,7 +274,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                       {candidate_answer && (
                         <span className="flex items-center gap-1 font-mono text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
                           <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          {candidate_answer.elapsed_seconds}s utilizados / {question.time_limit_seconds}s
+                          {final_review?.final_scores.historical_import ? 'Tiempo no registrado en el Excel' : `${candidate_answer.elapsed_seconds}s utilizados / ${question.time_limit_seconds}s`}
                           {candidate_answer.timed_out && (
                             <span className="text-red-600 font-bold ml-1">(Tiempo agotado)</span>
                           )}
@@ -434,7 +440,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                                 <button
                                   key={val}
                                   type="button"
-                                  disabled={!candidate_answer}
+                                  disabled={!candidate_answer || !!final_review?.final_scores.historical_import}
                                   onClick={() => handleScoreChange(question.id, 'c1', val)}
                                   className={`flex-1 py-1 rounded text-xs font-bold transition-all ${
                                     !candidate_answer 
@@ -462,7 +468,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                                 <button
                                   key={val}
                                   type="button"
-                                  disabled={!candidate_answer}
+                                  disabled={!candidate_answer || !!final_review?.final_scores.historical_import}
                                   onClick={() => handleScoreChange(question.id, 'c2', val)}
                                   className={`flex-1 py-1 rounded text-xs font-bold transition-all ${
                                     !candidate_answer 
@@ -490,7 +496,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                                 <button
                                   key={val}
                                   type="button"
-                                  disabled={!candidate_answer}
+                                  disabled={!candidate_answer || !!final_review?.final_scores.historical_import}
                                   onClick={() => handleScoreChange(question.id, 'c3', val)}
                                   className={`flex-1 py-1 rounded text-xs font-bold transition-all ${
                                     !candidate_answer 
@@ -518,7 +524,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                                 <button
                                   key={val}
                                   type="button"
-                                  disabled={!candidate_answer}
+                                  disabled={!candidate_answer || !!final_review?.final_scores.historical_import}
                                   onClick={() => handleScoreChange(question.id, 'c4', val)}
                                   className={`flex-1 py-1 rounded text-xs font-bold transition-all ${
                                     !candidate_answer 
@@ -539,7 +545,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                         <div>
                           <input
                             type="text"
-                            disabled={!candidate_answer}
+                            disabled={!candidate_answer || !!final_review?.final_scores.historical_import}
                             value={rubricScores.observation}
                             onChange={(e) => handleObservationChange(question.id, e.target.value)}
                             placeholder={candidate_answer ? "Observación u opinión técnica del evaluador..." : "En espera de que la candidata envíe su respuesta para calificar..."}
@@ -555,12 +561,12 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                           <div className="flex justify-end pt-1">
                             <button
                               type="button"
-                              disabled={rubricScores.submitting}
+                              disabled={rubricScores.submitting || !!final_review?.final_scores.historical_import}
                               onClick={() => handleSaveScore(question.id, candidate_answer.id)}
                               className="px-4 py-2 bg-[#08265C] hover:bg-[#0D3882] text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                             >
                               <Save className="w-3.5 h-3.5" />
-                              <span>{rubricScores.submitting ? 'Guardando...' : `Guardar Calificación como ${currentReviewer.name}`}</span>
+                              <span>{final_review?.final_scores.historical_import ? 'Calificación original del Excel' : rubricScores.submitting ? 'Guardando...' : `Guardar Calificación como ${currentReviewer.name}`}</span>
                             </button>
                           </div>
                         ) : (

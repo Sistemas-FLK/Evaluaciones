@@ -104,6 +104,12 @@ export interface FinalReview {
     manual_score: number;
     total_score: number;
     competency_breakdown: Record<string, { earned: number; max: number }>;
+    historical_import?: {
+      source_file: string;
+      evaluation_date: string;
+      original_verdict: string;
+      timing_available: false;
+    };
   };
   recommendation: RecommendationType;
   justification: string;

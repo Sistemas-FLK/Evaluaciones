@@ -95,6 +95,38 @@ export interface ReviewerScore {
   reviewed_at: string;
 }
 
+export interface HistoricalImport {
+  source_file: string;
+  source_sha256: string;
+  evaluation_date: string;
+  imported_at: string;
+  original_verdict: string;
+  timing_available: false;
+  questions: Array<{ question: Question; answer_key: AnswerKey }>;
+}
+
+export interface HistoricalEvaluationPayload {
+  access_code: string;
+  candidate_name: string;
+  source_file: string;
+  source_sha256: string;
+  evaluation_date: string;
+  original_verdict: string;
+  recommendation: RecommendationType;
+  objective_score: number;
+  manual_score: number;
+  total_score: number;
+  questions: Array<{
+    question: Question;
+    answer_key: AnswerKey;
+    selected_option?: string;
+    written_answer?: string;
+    points: number;
+    criterion_scores?: Record<string, number>;
+    observation?: string;
+  }>;
+}
+
 export interface FinalReview {
   assessment_id: string;
   final_scores: {
@@ -102,6 +134,7 @@ export interface FinalReview {
     manual_score: number;
     total_score: number;
     competency_breakdown: Record<string, { earned: number; max: number }>;
+    historical_import?: HistoricalImport;
   };
   recommendation: RecommendationType;
   justification: string;

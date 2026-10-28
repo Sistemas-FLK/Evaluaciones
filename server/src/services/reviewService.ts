@@ -75,9 +75,12 @@ export class ReviewService {
     const finalReview = db.getFinalReview(assessment.id);
 
     // Mapear las 10 preguntas con sus respuestas y calificaciones
-    const questionsDetail = questions.map(q => {
+    const historical = finalReview?.final_scores.historical_import;
+    const questionsDetail = questions.map(currentQuestion => {
+      const snapshot = historical?.questions.find(item => item.question.id === currentQuestion.id);
+      const q = snapshot?.question || currentQuestion;
       const answer = answers.find(a => a.question_id === q.id);
-      const answerKey = db.getAnswerKey(q.id);
+      const answerKey = snapshot?.answer_key || db.getAnswerKey(q.id);
       const reviewerScores = answer ? db.getReviewerScoresByAnswer(answer.id) : [];
 
       return {
@@ -131,6 +134,10 @@ export class ReviewService {
     criterionScores: Record<string, number>,
     observation?: string
   ) {
+    const recordedAnswer = Array.from(db.answers.values()).find(a => a.id === answerId);
+    if (recordedAnswer && db.getFinalReview(recordedAnswer.assessment_id)?.final_scores.historical_import) {
+      throw new Error('Esta calificación procede de un informe histórico y conserva la nota original del archivo.');
+    }
     // Validar que los criterios sean 0..3
     let totalPoints = 0;
     for (const [key, val] of Object.entries(criterionScores)) {
@@ -213,6 +220,9 @@ export class ReviewService {
       approved_by: string;
     }
   ) {
+    if (db.getFinalReview(assessmentId)?.final_scores.historical_import) {
+      throw new Error('El dictamen histórico conserva el resultado original del archivo.');
+    }
     const assessment = db.getAssessmentById(assessmentId);
     if (!assessment) {
       throw new Error('Evaluación no encontrada.');

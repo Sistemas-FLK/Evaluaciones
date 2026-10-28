@@ -388,6 +388,9 @@ export class AssessmentService {
    * Reinicio excepcional por un administrador con registro de auditoría.
    */
   async resetAssessment(assessmentId: string, actorId: string, reason: string) {
+    if (db.getFinalReview(assessmentId)?.final_scores.historical_import) {
+      throw new Error('La evaluación histórica debe conservarse. Registra otra evaluación para un nuevo intento.');
+    }
     const assessment = db.getAssessmentById(assessmentId);
     if (!assessment) {
       throw new Error('Evaluación no encontrada.');
