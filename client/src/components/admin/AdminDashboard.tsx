@@ -1,3 +1,4 @@
+import { CandidateManagementModal, CandidateAction } from './CandidateManagementModal';
 import React, { useState, useEffect } from 'react';
 import { 
   Users, 
@@ -37,6 +38,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [management, setManagement] = useState<{candidate: CandidateOverviewRow; action: CandidateAction} | null>(null);
+  const statusLabels: Record<string, string> = { pending: 'Pendiente', in_progress: 'En progreso', submitted: 'Pendiente revisión', graded: 'Calificada', no_show: 'No se presentó', incomplete: 'No completó' };
 
   // Modales
   const [selectedCandidateDetail, setSelectedCandidateDetail] = useState<any | null>(null);
@@ -89,7 +93,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   // Filtrar candidatas
-  const filteredCandidates = overview?.candidates.filter(c => {
+  const filteredCandidates = (showDeleted ? overview?.deleted_candidates : overview?.candidates)?.filter(c => {
     const q = searchQuery.toLowerCase();
     return (
       c.full_name.toLowerCase().includes(q) ||
@@ -225,6 +229,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-3 items-center text-xs text-slate-600">
+        <button type="button" aria-pressed={!showDeleted} onClick={() => setShowDeleted(false)} className={`px-4 py-2 rounded-xl border ${!showDeleted ? 'bg-[#08265C] text-white' : 'bg-white border-slate-300'}`}>Activas ({overview?.candidates.length || 0})</button>
+        <button type="button" aria-pressed={showDeleted} onClick={() => setShowDeleted(true)} className={`px-4 py-2 rounded-xl border ${showDeleted ? 'bg-[#08265C] text-white' : 'bg-white border-slate-300'}`}>Eliminadas ({overview?.deleted_candidates?.length || 0})</button>
+        <span>No se presentó: <strong>{overview?.kpis.no_show || 0}</strong></span>
+        <span>No completó: <strong>{overview?.kpis.incomplete || 0}</strong></span>
+      </div>
       {/* Tabla Principal de Candidatas */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {/* Barra de búsqueda y conteo */}
@@ -317,23 +327,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             c.status === 'in_progress' ? 'bg-blue-500 animate-pulse' : 'bg-slate-400'
                           }`}></span>
                           <span>
-                            {c.status === 'graded' ? 'Calificada' :
-                             c.status === 'submitted' ? 'Pendiente revisión' :
-                             c.status === 'in_progress' ? 'En progreso' : 'Pendiente'}
+                            {showDeleted ? 'Eliminada' : statusLabels[c.status]}
                           </span>
                         </span>
+                        {(c.administrative_state?.participation_reason || c.administrative_state?.delete_reason) && (
+                          <p className="text-[11px] text-slate-500 mt-1 max-w-52 break-words">
+                            {showDeleted ? c.administrative_state?.delete_reason : c.administrative_state?.participation_reason}
+                          </p>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-3 text-center font-extrabold text-emerald-600 text-xs">
-                        {c.status === 'pending' ? '—' : `${c.objective_score} pts`}
+                        {(c.status === 'pending' || c.status === 'no_show') ? '—' : `${c.objective_score} pts`}
                       </td>
 
                       <td className="py-3.5 px-3 text-center font-extrabold text-blue-600 text-xs">
-                        {c.status === 'pending' ? '—' : `${c.manual_score} pts`}
+                        {(c.status === 'pending' || c.status === 'no_show') ? '—' : `${c.manual_score} pts`}
                       </td>
 
                       <td className="py-3.5 px-3 text-center text-xs">
-                        {c.status === 'pending' ? (
+                        {(c.status === 'pending' || c.status === 'no_show') ? (
                           <span className="text-slate-400">—</span>
                         ) : (
                           <span className="font-black text-slate-900 text-sm">
@@ -347,7 +360,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex flex-wrap items-center justify-end gap-1.5 min-w-64">
+                          {showDeleted ? (
+                            <button type="button" onClick={() => setManagement({candidate:c,action:'restore'})} className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-semibold">Restaurar</button>
+                          ) : <>
+                            <button type="button" onClick={() => setManagement({candidate:c,action:'edit'})} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800 text-xs font-semibold">Editar</button>
+                            {(c.status === 'pending' || c.status === 'in_progress') && (
+                              <button type="button" onClick={() => setManagement({candidate:c,action:c.status === 'pending' ? 'no_show' : 'incomplete'})} className="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-900 text-xs font-semibold">{c.status === 'pending' ? 'No se presentó' : 'No completó'}</button>
+                            )}
+                            {(c.status === 'no_show' || c.status === 'incomplete') && (
+                              <button type="button" onClick={() => setManagement({candidate:c,action:'active'})} className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-semibold">Restablecer acceso</button>
+                            )}
+                            <button type="button" onClick={() => setManagement({candidate:c,action:'delete'})} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-800 text-xs font-semibold">Eliminar</button>
+                          </>}
+
                           <button
                             onClick={() => handleOpenDetail(c.candidate_id)}
                             className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
@@ -375,6 +401,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
+      {management && <CandidateManagementModal
+        key={`${management.candidate.candidate_id}_${management.action}`}
+        candidate={management.candidate} action={management.action} authToken={authToken} reviewerName={currentReviewer.name}
+        onClose={() => setManagement(null)} onSaved={() => { setManagement(null); setIsDetailOpen(false); void fetchOverview(); }}
+      />}
       {/* Modales */}
       <CandidateDetailModal
         key={`${selectedCandidateDetail?.candidate.id || ''}_${currentReviewer.id}_${isDetailOpen}`}
@@ -394,7 +425,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <CandidateComparisonModal
         isOpen={isCompareOpen}
         onClose={() => setIsCompareOpen(false)}
-        candidates={overview?.candidates || []}
+        candidates={overview?.candidates.filter(c => c.status === 'submitted' || c.status === 'graded') || []}
         authToken={authToken}
         reviewerName={currentReviewer.name}
         onSaved={fetchOverview}

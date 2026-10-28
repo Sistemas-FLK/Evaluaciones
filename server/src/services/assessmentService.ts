@@ -27,6 +27,7 @@ export class AssessmentService {
       return { found: false, message: 'Candidata no encontrada' };
     }
 
+    if (db.getCandidateAdministrativeState(candidate.id).deleted || db.getCandidateAdministrativeState(candidate.id).participation !== 'active') return { found: false, message: 'Acceso cerrado. Contacta al evaluador.' };
     const assessment = db.getAssessmentByCandidateId(candidate.id);
     const isCompleted = assessment && (assessment.status === 'submitted' || assessment.status === 'graded');
 
@@ -97,6 +98,8 @@ export class AssessmentService {
       throw new Error('Candidata no encontrada en el sistema.');
     }
 
+    db.assertCandidateAvailable(candidate.id);
+
     // Si la candidata confirmó o completó su nombre o correo, actualizarlo
     if (candidateData?.full_name?.trim()) {
       const updated = await db.updateCandidate(candidate.id, {
@@ -149,6 +152,7 @@ export class AssessmentService {
     if (!assessment) {
       throw new Error('Evaluación no encontrada.');
     }
+    db.assertCandidateAvailable(assessment.candidate_id);
 
     if (assessment.status === 'submitted' || assessment.status === 'graded') {
       throw new Error('Esta evaluación ya ha sido completada previamente y no puede reiniciarse.');
@@ -187,6 +191,7 @@ export class AssessmentService {
     if (!assessment) {
       throw new Error('Evaluación no encontrada.');
     }
+    db.assertCandidateAvailable(assessment.candidate_id);
 
     if (assessment.status === 'submitted' || assessment.status === 'graded') {
       return {
@@ -249,6 +254,7 @@ export class AssessmentService {
    */
   async saveDraft(assessmentId: string, questionId: number, draftText: string) {
     const assessment = db.getAssessmentById(assessmentId);
+    if (assessment) db.assertCandidateAvailable(assessment.candidate_id);
     if (!assessment || assessment.status !== 'in_progress' || assessment.current_question_index !== questionId) {
       throw new Error('La pregunta ya no admite borradores.');
     }
@@ -285,6 +291,7 @@ export class AssessmentService {
     if (!assessment) {
       throw new Error('Evaluación no encontrada.');
     }
+    db.assertCandidateAvailable(assessment.candidate_id);
 
     if (assessment.status === 'submitted' || assessment.status === 'graded') {
       throw new Error('Esta evaluación ya ha sido completada.');
@@ -395,6 +402,7 @@ export class AssessmentService {
     if (!assessment) {
       throw new Error('Evaluación no encontrada.');
     }
+    db.assertCandidateAvailable(assessment.candidate_id);
 
     const now = new Date().toISOString();
     await db.updateAssessment(assessmentId, {

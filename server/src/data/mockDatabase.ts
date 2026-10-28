@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { 
+  CandidateAdministrativeState,
   Candidate, 
   Invitation, 
   Assessment, 
@@ -147,11 +148,34 @@ class MemoryDatabase {
       if (revRes.data && revRes.data.length > 0) {
         revRes.data.forEach((r: any) => this.reviewerScores.set(`${r.answer_id}_${r.reviewer_id}`, r));
       }
+      // Lifecycle events are durable state. Read every page, not only the API's first 1000 rows.
+      const logs: AuditLog[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const result = await supabase.from('audit_logs').select('*')
+          .order('created_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + 499);
+        if (result.error) throw new Error(result.error.message);
+        logs.push(...(result.data || []));
+        if (!result.data || result.data.length < 500) break;
+      }
+      this.auditLogs = logs;
       console.log(`[Supabase] Conectado y sincronizado: ${candRes.data?.length || 0} candidatas, ${assRes.data?.length || 0} evaluaciones.`);
     } catch (err: any) {
       console.error('[Supabase Hydration Error]', err?.message || err);
       throw err;
     }
+  }
+
+  getCandidateAdministrativeState(candidateId: string): CandidateAdministrativeState {
+    const events = this.auditLogs.filter(log => log.action === 'CANDIDATE_LIFECYCLE' && log.entity_id === candidateId);
+    const latest = events.reduce<AuditLog | undefined>((best, log) =>
+      !best || (log.metadata?.revision || 0) > (best.metadata?.revision || 0) ? log : best, undefined);
+    return latest ? { ...latest.metadata } : { revision: 0, deleted: false, participation: 'active' };
+  }
+
+  assertCandidateAvailable(candidateId: string) {
+    const state = this.getCandidateAdministrativeState(candidateId);
+    if (state.deleted) throw new Error('Este registro fue eliminado. Contacta al evaluador.');
+    if (state.participation !== 'active') throw new Error('El acceso a esta evaluación está cerrado por una incidencia de asistencia. Contacta al evaluador.');
   }
 
   // Candidatas

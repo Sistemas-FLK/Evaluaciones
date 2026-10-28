@@ -1,3 +1,4 @@
+import { candidateManagementService } from '../services/candidateManagementService.js';
 import { importHistoricalEvaluation } from '../services/historicalImport.js';
 import { Router, Request, Response } from 'express';
 import { reviewService } from '../services/reviewService.js';
@@ -125,6 +126,31 @@ router.post('/candidate/create', verifyAdmin, async (req: Request, res: Response
   } catch (error: any) {
     res.status(400).json({ error: error.message || 'Error al registrar candidata.' });
   }
+});
+
+router.patch('/candidate/:id', verifyAdmin, async (req: Request, res: Response) => {
+  try {
+    const candidate = await candidateManagementService.edit(String(req.params.id), req.body, req.body.actor);
+    res.json({ success: true, candidate });
+  } catch (error: any) { res.status(400).json({ error: error.message }); }
+});
+router.delete('/candidate/:id', verifyAdmin, async (req: Request, res: Response) => {
+  try {
+    const state = await candidateManagementService.remove(String(req.params.id), req.body.reason, req.body.actor);
+    res.json({ success: true, administrative_state: state });
+  } catch (error: any) { res.status(400).json({ error: error.message }); }
+});
+router.post('/candidate/:id/restore', verifyAdmin, async (req: Request, res: Response) => {
+  try {
+    const state = await candidateManagementService.restore(String(req.params.id), req.body.reason, req.body.actor);
+    res.json({ success: true, administrative_state: state });
+  } catch (error: any) { res.status(400).json({ error: error.message }); }
+});
+router.post('/candidate/:id/participation', verifyAdmin, async (req: Request, res: Response) => {
+  try {
+    const state = await candidateManagementService.participation(String(req.params.id), req.body.status, req.body.reason, req.body.actor);
+    res.json({ success: true, administrative_state: state });
+  } catch (error: any) { res.status(400).json({ error: error.message }); }
 });
 
 // Reiniciar evaluación de forma auditada

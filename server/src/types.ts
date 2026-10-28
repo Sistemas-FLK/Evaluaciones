@@ -166,3 +166,16 @@ export interface AuditLog {
   metadata?: any;
   created_at: string;
 }
+
+export interface CandidateAdministrativeState {
+  last_action_reason?: string;
+  revision: number;
+  deleted: boolean;
+  deleted_at?: string;
+  deleted_by?: string;
+  delete_reason?: string;
+  participation: 'active' | 'no_show' | 'incomplete';
+  participation_reason?: string;
+  participation_changed_at?: string;
+  participation_changed_by?: string;
+}

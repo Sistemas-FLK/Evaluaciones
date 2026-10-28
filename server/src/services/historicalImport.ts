@@ -17,6 +17,7 @@ export async function importHistoricalEvaluation(payload: HistoricalEvaluationPa
   if (!candidate || !assessment || candidate.full_name !== payload.candidate_name) {
     throw new Error('La candidata del informe no coincide con el código de invitación.');
   }
+  db.assertCandidateAvailable(candidate.id);
   const previous = db.getFinalReview(assessment.id);
   const importedHash = previous?.final_scores.historical_import?.source_sha256;
   if (importedHash === payload.source_sha256 && assessment.status === 'graded') {

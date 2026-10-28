@@ -95,6 +95,13 @@ export const PrintableReport: React.FC<PrintableReportProps> = ({
           {final_review?.final_scores.historical_import && (
             <p className="text-xs text-blue-900">Evaluación histórica del {final_review.final_scores.historical_import.evaluation_date}. Fuente: {final_review.final_scores.historical_import.source_file}. Preguntas y notas originales conservadas.</p>
           )}
+          {data.administrative_state && (data.administrative_state.deleted || data.administrative_state.participation !== 'active') && (
+            <div className="border border-amber-300 bg-amber-50 rounded-xl p-3 text-sm text-amber-950">
+              <strong>{data.administrative_state.deleted ? 'Candidata eliminada' : data.administrative_state.participation === 'no_show' ? 'No se presentó' : 'No completó'}</strong>
+              <p>{data.administrative_state.deleted ? data.administrative_state.delete_reason : data.administrative_state.participation_reason}</p>
+              <p>Registrado por: {data.administrative_state.deleted ? data.administrative_state.deleted_by : data.administrative_state.participation_changed_by}</p>
+            </div>
+          )}
           {/* Cuadro de Puntuaciones Oficiales */}
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="p-3 border border-slate-200 rounded-xl bg-slate-50">

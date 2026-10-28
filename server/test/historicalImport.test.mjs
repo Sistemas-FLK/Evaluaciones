@@ -36,6 +36,11 @@ test('importación histórica conserva preguntas originales, notas, fecha y no d
   assert.equal(db.getQuestionById(9).category,'Creatividad y Contenido Comercial');
   assert.equal(detail.final_review.final_scores.historical_import.timing_available,false);
   await assert.rejects(importReport({...payload,source_sha256:'1'.repeat(64)}));
+  const {candidateManagementService:manage}=await import(${JSON.stringify(root+'services/candidateManagementService.js')});
+  await assert.rejects(manage.participation(candidate.id,'no_show','No puede marcarse una histórica','QA'));
+  await manage.remove(candidate.id,'Prueba de eliminación recuperable','QA');
+  await manage.restore(candidate.id,'Restaurar evaluación histórica','QA');
+  assert.equal((await reviewService.getCandidateDetail(candidate.id)).assessment.total_score,100);
  `);
  run(`
   const candidate=db.getCandidates()[0];

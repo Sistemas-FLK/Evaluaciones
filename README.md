@@ -113,3 +113,12 @@ La plataforma incluye los scripts listos para producción en la carpeta `supabas
 4. **Calificación Dual (María y 2do Evaluador):** Sistema de rúbricas de 0 a 3 puntos por criterio con detección de discrepancias para facilitar el consenso.
 5. **Comparativa y Dictamen:** Gráficos de competencias, velocidad vs. precisión y selector colegiado de recomendación con justificación.
 6. **Exportación:** Descarga en formato CSV y vista ejecutiva para impresión / guardado en PDF con membrete oficial de QUIMICORP PERÚ S.A.C.
+
+
+## Gestión de candidatas y asistencia
+
+El panel permite crear, consultar, editar nombre/correo/teléfono y eliminar candidatas. Eliminar es recuperable: retira el registro del listado activo y bloquea su acceso; respuestas, notas e históricos permanecen disponibles en Eliminadas, con opción Restaurar. El correo continúa reservado mientras exista el registro.
+
+No se presentó aplica a evaluaciones pendientes; No completó a evaluaciones iniciadas. Ambas marcas requieren motivo, registran evaluador y fecha y bloquean validación, inicio, lectura de preguntas y envío desde sesiones abiertas. Restablecer acceso conserva respuestas y reloj original. Las pruebas entregadas e históricas no admiten marcas de inasistencia.
+
+Los estados administrativos se guardan como eventos CANDIDATE_LIFECYCLE en audit_logs, con revisión monotónica por candidata y estado completo. Se reconstruyen al arrancar leyendo todas las páginas; no requieren ampliar las restricciones SQL de assessments.status. El listado, los contadores y el CSV aplican estos estados. El sistema está configurado para una sola instancia del backend.

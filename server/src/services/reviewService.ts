@@ -6,13 +6,15 @@ export class ReviewService {
    * Resumen general de métricas y tabla de postulantes para el dashboard de evaluadores.
    */
   async getOverview() {
-    const candidates = db.getCandidates();
+    const candidates = db.getCandidates().filter(c => !db.getCandidateAdministrativeState(c.id).deleted);
     const assessments = db.getAssessments();
 
     let pendingCount = 0;
     let inProgressCount = 0;
     let submittedCount = 0;
     let gradedCount = 0;
+    let noShowCount = 0;
+    let incompleteCount = 0;
 
     const rows = candidates.map(candidate => {
       const assessment = assessments.find(a => a.candidate_id === candidate.id);
@@ -22,14 +24,19 @@ export class ReviewService {
         ? Array.from(db.invitations.values()).find(i => i.candidate_id === candidate.id)
         : undefined;
 
-      const status = assessment?.status || 'pending';
+      const administrative_state = db.getCandidateAdministrativeState(candidate.id);
+      const status = administrative_state.participation === 'active' ? (assessment?.status || 'pending') : administrative_state.participation;
+      if (status === 'no_show') noShowCount++;
+      if (status === 'incomplete') incompleteCount++;
       if (status === 'pending') pendingCount++;
       else if (status === 'in_progress') inProgressCount++;
       else if (status === 'submitted') submittedCount++;
       else if (status === 'graded') gradedCount++;
 
       return {
+        administrative_state,
         candidate_id: candidate.id,
+        phone: candidate.phone,
         full_name: candidate.full_name,
         email: candidate.email,
         access_code: invitation?.access_code || '—',
@@ -50,8 +57,23 @@ export class ReviewService {
         pending: pendingCount,
         in_progress: inProgressCount,
         submitted_pending_review: submittedCount,
-        graded: gradedCount
+        graded: gradedCount,
+        no_show: noShowCount,
+        incomplete: incompleteCount
       },
+      deleted_candidates: db.getCandidates().filter(c => db.getCandidateAdministrativeState(c.id).deleted).map(c => {
+        const assessment = db.getAssessmentByCandidateId(c.id);
+        const invitation = Array.from(db.invitations.values()).find(i => i.candidate_id === c.id);
+        return {
+          candidate_id: c.id, full_name: c.full_name, email: c.email, phone: c.phone, access_code: invitation?.access_code || '',
+          assessment_id: assessment?.id || null, status: assessment?.status || 'pending',
+          objective_score: assessment?.objective_score || 0, manual_score: assessment?.manual_score || 0,
+          total_score: assessment?.total_score || 0,
+          total_time_seconds: assessment ? db.getAnswersByAssessment(assessment.id).reduce((sum,a)=>sum+a.elapsed_seconds,0) : 0,
+          answers_count: assessment ? db.getAnswersByAssessment(assessment.id).length : 0,
+          has_review: !!(assessment && db.getFinalReview(assessment.id)), administrative_state: db.getCandidateAdministrativeState(c.id)
+        };
+      }),
       candidates: rows
     };
   }
@@ -118,6 +140,7 @@ export class ReviewService {
 
     return {
       candidate,
+      administrative_state: db.getCandidateAdministrativeState(candidate.id),
       assessment,
       questions_detail: questionsDetail,
       final_review: finalReview || null
@@ -137,6 +160,10 @@ export class ReviewService {
     const recordedAnswer = Array.from(db.answers.values()).find(a => a.id === answerId);
     if (recordedAnswer && db.getFinalReview(recordedAnswer.assessment_id)?.final_scores.historical_import) {
       throw new Error('Esta calificación procede de un informe histórico y conserva la nota original del archivo.');
+    }
+    if (recordedAnswer) {
+      const target = db.getAssessmentById(recordedAnswer.assessment_id);
+      if (target) db.assertCandidateAvailable(target.candidate_id);
     }
     // Validar que los criterios sean 0..3
     let totalPoints = 0;
@@ -227,6 +254,7 @@ export class ReviewService {
     if (!assessment) {
       throw new Error('Evaluación no encontrada.');
     }
+    db.assertCandidateAvailable(assessment.candidate_id);
 
     if (!payload.justification || payload.justification.trim().length < 10) {
       throw new Error('Debe proporcionar una justificación clara y detallada para el dictamen comercial.');
@@ -303,9 +331,13 @@ export class ReviewService {
    * Registro de nueva candidata y generación de código de invitación individual.
    */
   async registerNewCandidate(fullName: string, email: string, phone?: string) {
-    if (!fullName || !email) {
-      throw new Error('Nombres completos y correo electrónico son requeridos.');
+    if (typeof fullName !== 'string' || fullName.trim().length < 2 || fullName.trim().length > 255 ||
+        typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || email.trim().length > 255 ||
+        (phone !== undefined && (typeof phone !== 'string' || phone.length > 50))) {
+      throw new Error('Nombres completos y correo electrónico válido son requeridos.');
     }
+    fullName = fullName.trim();
+    email = email.trim().toLowerCase();
 
     const existing = db.getCandidateByEmail(email);
     if (existing) {
@@ -364,7 +396,7 @@ export class ReviewService {
    * Exporta tabla completa en CSV.
    */
   async exportCSV(): Promise<string> {
-    const candidates = db.getCandidates();
+    const candidates = db.getCandidates().filter(c => !db.getCandidateAdministrativeState(c.id).deleted);
     const assessments = db.getAssessments();
 
     const header = [
@@ -378,7 +410,11 @@ export class ReviewService {
       'Puntaje Total (100)',
       'Tiempo Total (segundos)',
       'Recomendación Final',
-      'Justificación'
+      'Justificación',
+      'Incidencia de asistencia',
+      'Motivo de incidencia',
+      'Registrada por',
+      'Fecha de registro'
     ];
 
     const lines = [header.join(',')];
@@ -395,13 +431,17 @@ export class ReviewService {
         `"${c.full_name}"`,
         `"${c.email}"`,
         `"${inv?.access_code || ''}"`,
-        `"${a?.status || 'pending'}"`,
+        `"${db.getCandidateAdministrativeState(c.id).participation === 'active' ? a?.status || 'pending' : db.getCandidateAdministrativeState(c.id).participation}"`,
         a ? a.objective_score : 0,
         a ? a.manual_score : 0,
         a ? a.total_score : 0,
         totalSeconds,
         `"${rev?.recommendation || 'Sin dictamen'}"`,
-        `"${(rev?.justification || '').replace(/"/g, '""')}"`
+        `"${(rev?.justification || '').replace(/"/g, '""')}"`,
+        db.getCandidateAdministrativeState(c.id).participation,
+        `"${(db.getCandidateAdministrativeState(c.id).participation_reason || '').replace(/"/g, '""')}"`,
+        `"${(db.getCandidateAdministrativeState(c.id).participation_changed_by || '').replace(/"/g, '""')}"`,
+        db.getCandidateAdministrativeState(c.id).participation_changed_at || ''
       ];
 
       lines.push(row.join(','));

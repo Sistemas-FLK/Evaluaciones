@@ -33,13 +33,25 @@ export interface Candidate {
   created_at: string;
 }
 
+export interface CandidateAdministrativeState {
+  deleted: boolean;
+  participation: 'active' | 'no_show' | 'incomplete';
+  participation_reason?: string;
+  participation_changed_at?: string;
+  participation_changed_by?: string;
+  delete_reason?: string;
+  deleted_at?: string;
+  deleted_by?: string;
+}
 export interface CandidateOverviewRow {
+  phone?: string;
+  administrative_state?: CandidateAdministrativeState;
   candidate_id: string;
   full_name: string;
   email: string;
   access_code: string;
   assessment_id: string | null;
-  status: AssessmentStatus;
+  status: AssessmentStatus | 'no_show' | 'incomplete';
   objective_score: number;
   manual_score: number;
   total_score: number;
@@ -55,8 +67,11 @@ export interface OverviewData {
     in_progress: number;
     submitted_pending_review: number;
     graded: number;
+    no_show?: number;
+    incomplete?: number;
   };
   candidates: CandidateOverviewRow[];
+  deleted_candidates?: CandidateOverviewRow[];
 }
 
 export interface ReviewerScore {
@@ -118,6 +133,7 @@ export interface FinalReview {
 }
 
 export interface CandidateDetailResponse {
+  administrative_state?: CandidateAdministrativeState;
   candidate: Candidate;
   assessment: {
     id: string;

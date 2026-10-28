@@ -49,6 +49,8 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
 
   if (!isOpen || !data) return null;
   const { candidate, assessment, questions_detail, final_review } = data;
+  const administrative = data.administrative_state;
+  const accessClosed = !!administrative?.deleted || (!!administrative && administrative.participation !== 'active');
 
   // Inicializar o leer valores de rúbrica
   const getRubricScores = (qId: number) => {
@@ -156,7 +158,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handleResetAssessment}
-              disabled={resetting || !!final_review?.final_scores.historical_import}
+              disabled={resetting || !!final_review?.final_scores.historical_import || accessClosed}
               title="Autorizar reinicio excepcional auditado"
               className="px-3 py-1.5 bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-700/60 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
             >
@@ -204,6 +206,13 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
             </div>
           </div>
 
+          {accessClosed && (
+            <div className="mt-3 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-950 text-xs">
+              <strong>{administrative?.deleted ? 'Candidata eliminada' : administrative?.participation === 'no_show' ? 'No se presentó' : 'No completó'}</strong>
+              <p>{administrative?.deleted ? administrative.delete_reason : administrative?.participation_reason}</p>
+              <p>Registro por {administrative?.deleted ? administrative.deleted_by : administrative?.participation_changed_by}. Se conservan las respuestas y calificaciones existentes.</p>
+            </div>
+          )}
           {final_review?.final_scores.historical_import && (
             <div className="mt-3 p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-xs">
               Evaluación histórica del {final_review.final_scores.historical_import.evaluation_date} importada de {final_review.final_scores.historical_import.source_file}.
@@ -440,7 +449,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                                 <button
                                   key={val}
                                   type="button"
-                                  disabled={!candidate_answer || !!final_review?.final_scores.historical_import}
+                                  disabled={!candidate_answer || !!final_review?.final_scores.historical_import || accessClosed}
                                   onClick={() => handleScoreChange(question.id, 'c1', val)}
                                   className={`flex-1 py-1 rounded text-xs font-bold transition-all ${
                                     !candidate_answer 
@@ -468,7 +477,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                                 <button
                                   key={val}
                                   type="button"
-                                  disabled={!candidate_answer || !!final_review?.final_scores.historical_import}
+                                  disabled={!candidate_answer || !!final_review?.final_scores.historical_import || accessClosed}
                                   onClick={() => handleScoreChange(question.id, 'c2', val)}
                                   className={`flex-1 py-1 rounded text-xs font-bold transition-all ${
                                     !candidate_answer 
@@ -496,7 +505,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                                 <button
                                   key={val}
                                   type="button"
-                                  disabled={!candidate_answer || !!final_review?.final_scores.historical_import}
+                                  disabled={!candidate_answer || !!final_review?.final_scores.historical_import || accessClosed}
                                   onClick={() => handleScoreChange(question.id, 'c3', val)}
                                   className={`flex-1 py-1 rounded text-xs font-bold transition-all ${
                                     !candidate_answer 
@@ -524,7 +533,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                                 <button
                                   key={val}
                                   type="button"
-                                  disabled={!candidate_answer || !!final_review?.final_scores.historical_import}
+                                  disabled={!candidate_answer || !!final_review?.final_scores.historical_import || accessClosed}
                                   onClick={() => handleScoreChange(question.id, 'c4', val)}
                                   className={`flex-1 py-1 rounded text-xs font-bold transition-all ${
                                     !candidate_answer 
@@ -545,7 +554,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                         <div>
                           <input
                             type="text"
-                            disabled={!candidate_answer || !!final_review?.final_scores.historical_import}
+                            disabled={!candidate_answer || !!final_review?.final_scores.historical_import || accessClosed}
                             value={rubricScores.observation}
                             onChange={(e) => handleObservationChange(question.id, e.target.value)}
                             placeholder={candidate_answer ? "Observación u opinión técnica del evaluador..." : "En espera de que la candidata envíe su respuesta para calificar..."}
@@ -561,7 +570,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                           <div className="flex justify-end pt-1">
                             <button
                               type="button"
-                              disabled={rubricScores.submitting || !!final_review?.final_scores.historical_import}
+                              disabled={rubricScores.submitting || !!final_review?.final_scores.historical_import || accessClosed}
                               onClick={() => handleSaveScore(question.id, candidate_answer.id)}
                               className="px-4 py-2 bg-[#08265C] hover:bg-[#0D3882] text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                             >

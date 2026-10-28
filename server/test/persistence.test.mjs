@@ -61,6 +61,7 @@ test('Supabase restaura dictámenes y rechaza escrituras fallidas sin modificar 
       const tables = {
         candidates:[{id:'cloud-candidate',full_name:'Cloud'}],
         invitations:[], assessments:[], answers:[], reviewer_scores:[],
+        audit_logs:[{id:'event',action:'CANDIDATE_LIFECYCLE',entity_id:'cloud-candidate',metadata:{revision:2,deleted:false,participation:'no_show'}}],
         final_reviews:[{assessment_id:'cloud-exam',justification:'Persistido en nube'}]
       };
       return new Response(JSON.stringify(tables[url.pathname.split('/').pop()] || []),{headers:{'Content-Type':'application/json'}});
@@ -69,9 +70,13 @@ test('Supabase restaura dictámenes y rechaza escrituras fallidas sin modificar 
     await db.ready;
     assert.equal(db.initializationError,null);
     assert.equal(db.getCandidates().length,1);
+    assert.equal(db.getCandidateAdministrativeState('cloud-candidate').participation,'no_show');
     assert.equal(db.getFinalReview('cloud-exam').justification,'Persistido en nube');
     await assert.rejects(db.updateCandidate('cloud-candidate',{full_name:'No guardado'}));
     assert.equal(db.getCandidateById('cloud-candidate').full_name,'Cloud');
+    const {candidateManagementService}=await import(${JSON.stringify(new URL('../dist/services/candidateManagementService.js', import.meta.url).href)});
+    await assert.rejects(candidateManagementService.remove('cloud-candidate','Prueba de fallo remoto','QA'));
+    assert.equal(db.getCandidateAdministrativeState('cloud-candidate').deleted,false);
   `;
   const result=spawnSync(process.execPath,['--input-type=module','-e',code],{
     cwd:folder,encoding:'utf8',env:{...process.env,SUPABASE_URL:'https://test.example.invalid/rest/v1/',SUPABASE_SERVICE_ROLE_KEY:'test-key'}

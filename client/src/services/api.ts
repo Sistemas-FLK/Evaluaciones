@@ -209,3 +209,21 @@ export async function resetAssessment(
   if (!res.ok) throw new Error(data.error || 'Error al reiniciar');
   return data;
 }
+
+export async function manageCandidate(
+  candidateId: string,
+  action: 'edit' | 'delete' | 'restore' | 'no_show' | 'incomplete' | 'active',
+  payload: { actor: string; reason?: string; full_name?: string; email?: string; phone?: string },
+  token: string
+) {
+  const participation = ['no_show', 'incomplete', 'active'].includes(action);
+  const suffix = participation ? '/participation' : action === 'restore' ? '/restore' : '';
+  const response = await fetch(`${API_BASE}/admin/candidate/${encodeURIComponent(candidateId)}${suffix}`, {
+    method: action === 'edit' ? 'PATCH' : action === 'delete' ? 'DELETE' : 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: token },
+    body: JSON.stringify({ ...payload, ...(participation ? { status: action } : {}) })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'No se pudo actualizar la candidata.');
+  return data;
+}
