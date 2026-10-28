@@ -150,7 +150,7 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onValidated }) => {
                   required
                   value={accessCode}
                   onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-                  placeholder="Ej: ESTHER-QUIMI-2026"
+                  placeholder="Ingresa tu código de invitación"
                   className="w-full pl-10 pr-4 py-3 bg-white border border-blue-300 rounded-xl text-sm font-mono tracking-widest uppercase focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-[#08265C] font-bold shadow-sm transition-all"
                   autoComplete="off"
                 />
@@ -185,7 +185,7 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onValidated }) => {
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ej: Esther Cruzado Albines"
+                  placeholder="Ingresa tus nombres y apellidos"
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all text-slate-800 font-medium"
                 />
               </div>
